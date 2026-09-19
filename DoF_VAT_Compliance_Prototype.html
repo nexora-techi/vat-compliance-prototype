@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DoF VAT Compliance — MVP Prototype</title>
+  <style>
+    :root {
+      --navy: #0B2545; --navy-2: #13315C; --teal: #0E7C7B; --gold: #C9A227;
+      --maroon: #8C3B3B; --grey: #5B6470; --line: #E4E7EC; --bg: #F4F6F8;
+      --ok: #0B4F4E; --ok-bg: #DCEEE9; --warn: #5C4A0A; --warn-bg: #FBEFD1;
+      --bad: #8C3B3B; --bad-bg: #F1E4E4;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: #1A1A1A; }
+    button, select, input { font: inherit; }
+    button { cursor: pointer; }
+    .shell { display: flex; height: 100%; }
+    .sidebar { width: 250px; background: var(--navy); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
+    .brand { padding: 22px 20px 16px; }
+    .brand h1 { margin: 0; font-size: 18px; line-height: 1.25; }
+    .brand p { margin: 6px 0 0; font-size: 11px; color: #9FB0C9; }
+    .nav { flex: 1; padding: 8px 12px; }
+    .nav button { width: 100%; display: flex; align-items: center; gap: 10px; background: transparent; border: 0; color: #B7C2D6; padding: 10px 12px; border-radius: 8px; text-align: left; font-size: 14px; margin-bottom: 2px; }
+    .nav button:hover { color: #fff; }
+    .nav button.active { background: var(--navy-2); color: #fff; }
+    .nav svg { flex-shrink: 0; }
+    .side-foot { padding: 14px 18px; font-size: 11px; color: #7C8AA3; border-top: 1px solid #1B3A66; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar { min-height: 64px; background: #fff; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 24px; }
+    .topbar h2 { margin: 0; font-size: 18px; color: var(--navy); }
+    .top-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .top-controls select { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: #fff; max-width: 220px; }
+    .user-chip { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; }
+    .content { flex: 1; overflow: auto; padding: 24px 28px 40px; }
+    .stepper { background: #fff; border-bottom: 1px solid var(--line); padding: 12px 28px; display: flex; gap: 10px; overflow-x: auto; align-items: center; }
+    .step { display: flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 13px; color: var(--grey); border: 0; background: none; }
+    .step .n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: #EEF0F3; color: #8A93A6; }
+    .step.active { color: var(--navy); font-weight: 600; }
+    .step.active .n { background: var(--gold); color: #fff; }
+    .step.done .n { background: var(--teal); color: #fff; }
+    .grid { display: grid; gap: 14px; }
+    .g4 { grid-template-columns: repeat(4, 1fr); }
+    .g3 { grid-template-columns: repeat(3, 1fr); }
+    .g2 { grid-template-columns: 1.5fr 1fr; }
+    @media (max-width: 1100px) { .g4, .g3, .g2 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { .g4, .g3, .g2 { grid-template-columns: 1fr; } .shell { flex-direction: column; } .sidebar { width: 100%; } }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+    .card-h { padding: 14px 16px; border-bottom: 1px solid #EEF0F3; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .card-h h3 { margin: 0; font-size: 15px; color: var(--navy); }
+    .card-b { padding: 16px; }
+    .kpi { padding: 16px; }
+    .kpi .lbl { font-size: 13px; color: var(--grey); }
+    .kpi .val { font-size: 28px; font-weight: 700; color: var(--navy); margin-top: 6px; }
+    .kpi .sub { font-size: 12px; color: var(--grey); margin-top: 4px; }
+    .badge { display: inline-block; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
+    .b-ok { background: var(--ok-bg); color: var(--ok); }
+    .b-warn { background: var(--warn-bg); color: var(--warn); }
+    .b-bad { background: var(--bad-bg); color: var(--bad); }
+    .b-pay { background: var(--bad-bg); color: var(--maroon); }
+    .b-ref { background: var(--ok-bg); color: var(--ok); }
+    .b-info { background: #EEF2F7; color: var(--navy); }
+    .b-muted { background: #F2F3F5; color: var(--grey); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid #F5F6F8; vertical-align: top; }
+    th { font-size: 11px; color: var(--grey); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    th.num { text-align: right; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover, tr.sel { background: #F0F4F8; }
+    tr.exc { background: #FFF8ED; }
+    tr.exc-dup { background: #FBF5F5; }
+    .btn { border: 0; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; }
+    .btn-navy { background: var(--navy); color: #fff; }
+    .btn-teal { background: var(--teal); color: #fff; }
+    .btn-ghost { background: #F2F3F5; color: #1A1A1A; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .hint { font-size: 12px; color: var(--grey); }
+    .lock { font-size: 12px; color: #8A93A6; margin-top: 6px; }
+    .param { display: inline-flex; gap: 14px; background: #F0F4F8; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 12px; margin-bottom: 14px; }
+    .callout { background: #FBEFD1; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--warn); }
+    .okout { background: var(--ok-bg); color: var(--ok); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+    .impact { border-left: 3px solid var(--gold); padding: 8px 10px; background: #FAFBFC; margin: 8px 0; font-size: 12px; }
+    .login { min-height: 100%; background: var(--navy); display: flex; align-items: center; justify-content: center; padding: 32px; }
+    .login-inner { width: min(980px, 100%); }
+    .login-inner h1 { color: #fff; text-align: center; margin: 0; }
+    .login-inner .sub { color: #9FD6D4; text-align: center; margin: 8px 0 28px; }
+    .user-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 800px) { .user-grid { grid-template-columns: 1fr; } }
+    .user-card { background: #fff; border: 0; border-radius: 12px; padding: 18px; text-align: left; }
+    .user-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.18); }
+    .ico { width: 40px; height: 40px; border-radius: 8px; background: #EEF2F7; display: grid; place-items: center; color: var(--navy); margin-bottom: 10px; }
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill { border: 0; background: #F2F3F5; color: var(--grey); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; }
+    .pill.on { background: var(--navy); color: #fff; }
+    .bar { height: 8px; background: #EEF0F3; border-radius: 99px; overflow: hidden; }
+    .bar > i { display: block; height: 100%; background: var(--navy); }
+    .bar > i.teal { background: var(--teal); }
+    .heat { display: grid; grid-template-columns: 90px 1fr 1fr 1fr; gap: 6px; font-size: 12px; align-items: center; }
+    .cell { padding: 8px; border-radius: 6px; text-align: center; font-weight: 600; }
+    .c0 { background: #DCEEE9; color: var(--ok); }
+    .c1 { background: #FBEFD1; color: var(--warn); }
+    .c2 { background: #F1E4E4; color: var(--maroon); }
+    .g-dash { grid-template-columns: 250px 1fr; }
+    @media (max-width: 1100px) { .g-dash { grid-template-columns: 1fr; } }
+    .cat-h { padding: 10px 14px; font-size: 11px; font-weight: 700; color: #8A93A6; letter-spacing: .04em; }
+    .cat-btn { width: 100%; display: block; text-align: left; background: transparent; border: 0; border-top: 1px solid #F5F6F8; padding: 10px 14px; font-size: 13px; color: #1A1A1A; }
+    .cat-btn.on { background: #F0F4F8; font-weight: 600; color: var(--navy); }
+    .score { width: 56px; margin: 0 auto; border-radius: 6px; padding: 4px 0; text-align: center; font-size: 11px; font-weight: 700; color: #fff; }
+    pre { background: var(--navy); color: #DCE6F5; font-size: 11.5px; padding: 14px; border-radius: 8px; overflow: auto; max-height: 240px; }
+    .toast { position: fixed; bottom: 18px; right: 18px; background: var(--navy); color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 13px; }
+    .empty { padding: 28px; text-align: center; color: #8A93A6; }
+    .sign { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 14px; }
+    .dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: #EEF0F3; color: #8A93A6; }
+    .dot.on { background: var(--gold); color: #fff; }
+    .dot.done { background: var(--teal); color: #fff; }
+    .toggle { width: 42px; height: 24px; border-radius: 99px; border: 0; background: #D1D5DB; position: relative; }
+    .toggle.on { background: var(--gold); }
+    .toggle i { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; }
+    .toggle.on i { left: 20px; }
+    .chk { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 4px 0; }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    const NAVY = "#0B2545", TEAL = "#0E7C7B", GOLD = "#C9A227";
+    const fmt = (n) => new Intl.NumberFormat("en-AE", { maximumFractionDigits: 0 }).format(Number(n) || 0);
+    const money = (n) => fmt(n) + " AED";
+    const clone = (v) => JSON.parse(JSON.stringify(v));
+    const ico = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">${d}</svg>`;
+    const Icon = {
+      home: ico('<path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9h12v-9"/>'),
+      alert: ico('<path d="M12 4 3 20h18L12 4Z"/><path d="M12 10.5v4M12 17.2v.1"/>'),
+      file: ico('<path d="M6 3h8l5 5v13H6V3Z"/><path d="M14 3v5h5M9 13h6M9 16.5h6"/>'),
+      merge: ico('<path d="M6 4v5c0 4 4 4 4 4h4M18 4v5c0 4-4 4-4 4M12 17v3"/><circle cx="6" cy="4" r="1.6"/><circle cx="18" cy="4" r="1.6"/><circle cx="12" cy="20" r="1.6"/>'),
+      search: ico('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.3-4.3"/>'),
+      grid: ico('<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>'),
+      gear: ico('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'),
+      user: ico('<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>'),
+      shield: ico('<path d="M12 3.5 5 6v6c0 4.5 3 7.3 7 8.5 4-1.2 7-4 7-8.5V6l-7-2.5Z"/>'),
+      check: ico('<circle cx="12" cy="12" r="9.5"/><path d="m8 12.5 2.7 2.7L16 9.5"/>'),
+      refund: ico('<path d="M12 5v14M8 9l4-4 4 4M8 15H5a2 2 0 0 1-2-2V7"/><path d="M16 15h3a2 2 0 0 0 2-2v-2"/>'),
+      lock: ico('<rect x="5" y="10.5" width="14" height="9" rx="1.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>'),
+      table: ico('<path d="M4 6h16v12H4zM4 10h16M10 6v12"/>'),
+      upload: ico('<path d="M12 15V4M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>'),
+      chevron: ico('<path d="m9 6 6 6-6 6"/>'),
+      tick: ico('<path d="M4 12.5 9 18l11-12"/>'),
+      sliders: ico('<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="17" r="2.2"/>')
+    };
+
+    const ROLES = [
+      { id: "Accountant", label: "Local Accountant", blurb: "Data validation, exception resolution and first-line VAT return preparation for your entity." },
+      { id: "VAT Reviewer", label: "VAT Reviewer", blurb: "Review entity-level VAT positions, exceptions and adjustments prior to escalation." },
+      { id: "Finance Controller", label: "Finance Controller", blurb: "Entity-level sign-off of VAT returns and reconciliation packs." },
+      { id: "DoF Tax Team", label: "DoF Tax Team", blurb: "VAT Group consolidation, final review and sign-off, and submission to the FTA." },
+      { id: "Administrator", label: "System Administrator", blurb: "RBAC, segregation-of-duties configuration and platform administration." }
+    ];
+    const SIGNOFF_STEPS = ["Accountant", "VAT Reviewer", "Finance Controller", "DoF Tax Team"];
+    const PERIODS = ["Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026"];
+    const VAT_GROUPS = [
+      { id: "g1", name: "VAT Group 1", entities: ["Entity A", "Entity B"], note: "Built in full — drives all three exception scenarios." },
+      { id: "g2", name: "VAT Group 2", entities: ["Entity C"], note: "Three clean lines. Net refund — refund tracking screen." },
+      { id: "g3", name: "VAT Group 3", entities: [], note: "Summary line only, no transaction detail." }
+    ];
+    const ALL_ENTITIES = ["Entity A", "Entity B", "Entity C"];
+    const GROUP3 = { output: 320000, input: 210000, net: 110000 };
+    const seedUsers = [
+      { name: "Vishal", role: "Accountant" },
+      { name: "Balit", role: "Accountant" },
+      { name: "Promod", role: "VAT Reviewer" },
+      { name: "R. Verma", role: "Finance Controller" },
+      { name: "K. Menon", role: "DoF Tax Team" },
+      { name: "Sanjay", role: "Administrator" }
+    ];
+    const seedEntityAccessRulesDefault = {
+      Balit: ["Entity B"],
+      Vishal: ["Entity A", "Entity C"]
+    };
+
+    const SAMPLE_TXNS = [
+      { id: "AR-A-001", vatGroup: "g1", entity: "Entity A", type: "AR", description: "Service revenue", netAmount: 2000000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 100000, recommendedVat: 100000, exceptionType: null, exceptionStatus: null, explanation: "2,000,000 × 5% = 100,000. Posted correctly at source, so GL and working agree." },
+      { id: "AR-A-005", vatGroup: "g1", entity: "Entity A", type: "AR", description: "Consultancy fee (sale to customer)", netAmount: 200000, vatCode: "Exempt (incorrect)", appliedRate: 0.05, sourceVat: 0, recommendedVat: 10000, exceptionType: "Incorrect VAT", exceptionStatus: "accepted", explanation: "Source posted this as Exempt, so the GL carries NIL output VAT. Recommendation: change Exempt to SR 5% (10,000)." },
+      { id: "AR-A-003", vatGroup: "g1", entity: "Entity A", type: "AR", description: "Facility fees", netAmount: 300000, vatCode: "No VAT code on extract", appliedRate: 0, sourceVat: 0, recommendedVat: 15000, exceptionType: "No VAT", exceptionStatus: "rejected", explanation: "Platform recommends SR 5% (15,000). Supply confirmed out of scope if rejected — ERP treatment stands." },
+      { id: "AR-B-001", vatGroup: "g1", entity: "Entity B", type: "AR", description: "Service revenue", netAmount: 1200000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 60000, recommendedVat: 60000, exceptionType: null, exceptionStatus: null, explanation: "1,200,000 × 5% = 60,000. Entity B's only output VAT row." },
+      { id: "AP-A-101", vatGroup: "g1", entity: "Entity A", type: "AP", description: "Operating supplies", netAmount: 800000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 40000, recommendedVat: 40000, exceptionType: null, exceptionStatus: null, explanation: "800,000 × 5% = 40,000. Entity A's only input VAT row." },
+      { id: "AP-B-101", vatGroup: "g1", entity: "Entity B", type: "AP", description: "Capital purchase", netAmount: 2000000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 100000, recommendedVat: 100000, exceptionType: null, exceptionStatus: null, explanation: "2,000,000 × 5% = 100,000." },
+      { id: "AP-B-103", vatGroup: "g1", entity: "Entity B", type: "AP", description: "Maintenance — DUPLICATE record", netAmount: 400000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 20000, recommendedVat: 0, exceptionType: "Duplicate data", exceptionStatus: "emergency_adjust", explanation: "400,000 × 5% = 20,000 sits in the source/GL. Remove in the VAT platform only so filing is not delayed." },
+      { id: "AR-C-001", vatGroup: "g2", entity: "Entity C", type: "AR", description: "Service revenue", netAmount: 800000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 40000, recommendedVat: 40000, exceptionType: null, exceptionStatus: null, explanation: "Clean. 800,000 × 5% = 40,000." },
+      { id: "AR-C-002", vatGroup: "g2", entity: "Entity C", type: "AR", description: "Export of services", netAmount: 200000, vatCode: "ZR 0%", appliedRate: 0, sourceVat: 0, recommendedVat: 0, exceptionType: null, exceptionStatus: null, explanation: "Zero-rated, so nil output VAT." },
+      { id: "AP-C-101", vatGroup: "g2", entity: "Entity C", type: "AP", description: "Capital purchase", netAmount: 1200000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 60000, recommendedVat: 60000, exceptionType: null, exceptionStatus: null, explanation: "Clean. 1,200,000 × 5% = 60,000. Capital spend drives the refund." }
+    ];
+    const EXPECTED = { g1: { output: 170000, input: 140000, net: 30000 }, g2: { output: 40000, input: 60000, net: -20000 }, g3: GROUP3 };
+    const NAV = [
+      { id: "dashboard", label: "Dashboard", icon: "home" },
+      { id: "dataintake", label: "Data Intake", icon: "upload" },
+      { id: "validation", label: "Validation", icon: "check" },
+      { id: "exceptions", label: "Exceptions", icon: "alert" },
+      { id: "adjustments", label: "Adjustments", icon: "sliders" },
+      { id: "working", label: "VAT Working", icon: "table" },
+      { id: "recon", label: "Reconciliation", icon: "merge" },
+      { id: "return", label: "VAT Return", icon: "file" },
+      { id: "reports", label: "Dashboards", icon: "grid" },
+      { id: "audit", label: "Audit Trail", icon: "search" }
+    ];
+    const JOURNEY = [
+      { id: "dataintake", label: "Data Intake" },
+      { id: "validation", label: "Validation" },
+      { id: "exceptions", label: "Exceptions" },
+      { id: "adjustments", label: "Adjustments" },
+      { id: "recon", label: "Reconciliation" },
+      { id: "return", label: "VAT Return" }
+    ];
+    const REPORT_ITEMS = [
+      { id: 1, cat: "Dashboard", name: "Operational Dashboard", purpose: "Process status, task completion and SLA tracking across entities." },
+      { id: 2, cat: "Dashboard", name: "VAT Check Dashboard", purpose: "Validation health and exception trends by rule, entity and type." },
+      { id: 3, cat: "Dashboard", name: "Tax Risk Dashboard", purpose: "Risk heat-map by entity and category for management attention." },
+      { id: 4, cat: "Report", name: "VAT Return Summary Report", purpose: "Box-wise return position at entity and VAT Group level." },
+      { id: 5, cat: "Report", name: "Reconciliation Pack Report", purpose: "Formal reconciliation evidence supporting the return." },
+      { id: 6, cat: "Report", name: "Adjustment Register Report", purpose: "Full listing and status of all adjustments in a period." },
+      { id: 7, cat: "Report", name: "Exception Ageing Report", purpose: "Outstanding exceptions by age, owner and severity." },
+      { id: 8, cat: "Report", name: "Audit Trail / Traceability Report", purpose: "Formal record of the box-to-transaction audit trail." },
+      { id: 9, cat: "Report", name: "Refund Status Report", purpose: "Status and ageing of refund claims." },
+      { id: 10, cat: "Report", name: "Entity-Wise VAT Position Report", purpose: "Comparative VAT position across VAT Group entities." },
+      { id: 11, cat: "Report", name: "Sign-off / Approval Status Report", purpose: "Progress of the multi-level review and sign-off workflow." },
+      { id: 12, cat: "Report", name: "Historical Trend & Variance Analysis Report", purpose: "Period-on-period trend and variance analysis." }
+    ];
+    const EXC_AGE = { "AR-A-005": 6, "AR-A-003": 3, "AP-B-103": 11 };
+    const EXC_SEV = { "Incorrect VAT": "Medium", "No VAT": "Medium", "Duplicate data": "High" };
+    const seedRisk = [
+      { entity: "Entity A", dataQuality: 4, timeliness: 2, controls: 3 },
+      { entity: "Entity B", dataQuality: 3, timeliness: 2, controls: 5 },
+      { entity: "Entity C", dataQuality: 1, timeliness: 1, controls: 1 }
+    ];
+    const seedIngestBatches = [
+      { id: "B1", source: "Oracle Fusion — General Ledger", records: 12480, status: "Completed", time: "06:02" },
+      { id: "B2", source: "Oracle Fusion — Payables (AP)", records: 8320, status: "Completed", time: "06:04" },
+      { id: "B3", source: "Oracle Fusion — Receivables (AR)", records: 9110, status: "Completed", time: "06:05" },
+      { id: "B4", source: "Procurement Portal (Satellite)", records: 2210, status: "Completed", time: "06:11" },
+      { id: "B5", source: "Legacy AR System (Satellite)", records: 640, status: "Processing", time: "06:14" },
+      { id: "B6", source: "Manual Excel/CSV Upload", records: 0, status: "Awaiting Upload", time: "—" }
+    ];
+    const ADJ_TYPES = ["Partial Exemption", "Prior-Period Correction", "Industry-Specific", "Other"];
+    const seedAdjustments = [
+      { id: "ADJ-501", vatGroup: "g1", entity: "Entity A", ref: "AR-A-005", type: "Rate Reclassification", amount: 10000, preparer: "Vishal (Accountant)", reviewer: "Promod", status: "Pending Review", period: "Q2 2026" },
+      { id: "ADJ-502", vatGroup: "g1", entity: "Entity B", ref: "AP-B-103", type: "Duplicate Reversal", amount: -20000, preparer: "Balit (Accountant)", reviewer: "Promod", status: "Pending Review", period: "Q2 2026" },
+      { id: "ADJ-503", vatGroup: "g1", entity: "Entity A", ref: "Manual", type: "Partial Exemption", amount: 2500, preparer: "Vishal (Accountant)", reviewer: "Promod", status: "Approved", period: "Q2 2026" },
+      { id: "ADJ-504", vatGroup: "g2", entity: "Entity C", ref: "Manual", type: "Prior-Period Correction", amount: 4300, preparer: "Vishal (Accountant)", reviewer: "Promod", status: "Approved", period: "Q2 2026" },
+      { id: "ADJ-505", vatGroup: "g1", entity: "Entity B", ref: "Manual", type: "Rate Reclassification", amount: 2215, preparer: "Balit (Accountant)", reviewer: "Promod", status: "Approved", period: "Q1 2026" }
+    ];
+    const seedRules = [
+      { id: "R1", name: "Rate Mismatch Detection", trigger: "Tax code / rate combination inconsistent with vendor profile", active: true },
+      { id: "R2", name: "Missing Tax Code Check", trigger: "Transaction posted without a resolvable tax code", active: true },
+      { id: "R3", name: "Duplicate Transaction Detection", trigger: "Near-identical transaction within 5-day window", active: true },
+      { id: "R4", name: "Reverse Charge Validation", trigger: "Import transaction without reverse-charge entry", active: true },
+      { id: "R5", name: "Threshold Sample Selection", trigger: "Random sampling above configurable value threshold", active: false }
+    ];
+
+    const state = {
+      loggedIn: false,
+      username: "Vishal",
+      screen: "dashboard",
+      groupId: "g1",
+      period: "Q2 2026",
+      entity: "Entity A",
+      users: clone(seedUsers),
+      accessRules: clone(seedEntityAccessRulesDefault),
+      txns: clone(SAMPLE_TXNS),
+      selectedExc: "AR-A-005",
+      adjustments: clone(seedAdjustments),
+      showAdjForm: false,
+      signoff: { g1: 0, g2: 0, g3: 0 },
+      signoffLog: [],
+      reconSigned: { g1: false, g2: false, g3: false },
+      refund: { status: "Eligible", note: "Group 2 net refund of 20,000 from capital purchase AP-C-101." },
+      reportItem: 1,
+      auditBox: "Box 9",
+      audit: [],
+      toast: null,
+      furthest: 0,
+      batches: clone(seedIngestBatches),
+      expandedBatch: null,
+      uploading: false,
+      rules: clone(seedRules),
+      validationStatus: "idle",
+      checkedCount: 0
+    };
+
+    function roleOf(name) { return (state.users.find((u) => u.name === name) || seedUsers[0]).role; }
+    function role() { return roleOf(state.username); }
+    function roleInfo(id) { return ROLES.find((r) => r.id === id) || ROLES[0]; }
+    function getAccessibleEntities(username, rules = state.accessRules) {
+      if (!rules) return ALL_ENTITIES.slice();
+      return rules[username] ? rules[username].slice() : ALL_ENTITIES.slice();
+    }
+    function groupOf(entity) { return (VAT_GROUPS.find((g) => g.entities.includes(entity)) || {}).id || null; }
+    function entitiesInGroup() { return (VAT_GROUPS.find((g) => g.id === state.groupId) || VAT_GROUPS[0]).entities; }
+    function accessibleNow() {
+      return getAccessibleEntities(state.username).filter((e) => entitiesInGroup().includes(e));
+    }
+    function filterRows(rows) {
+      const acc = getAccessibleEntities(state.username);
+      return rows.filter((r) => acc.includes(r.entity) && r.vatGroup === state.groupId && (!state.entity || r.entity === state.entity));
+    }
+    function visibleAdjustments() {
+      const acc = getAccessibleEntities(state.username);
+      return state.adjustments.filter((a) => acc.includes(a.entity) && a.vatGroup === state.groupId && a.period === state.period);
+    }
+    function workingVat(t) {
+      if (!t.exceptionType) return Number(t.sourceVat) || 0;
+      const src = Number(t.sourceVat) || 0, rec = Number(t.recommendedVat) || 0, st = t.exceptionStatus;
+      if (t.exceptionType === "Incorrect VAT") return st === "accepted" ? rec : src;
+      if (t.exceptionType === "No VAT") return st === "accepted" ? rec : src;
+      if (t.exceptionType === "Duplicate data") return (st === "emergency_adjust" || st === "accepted") ? 0 : src;
+      return src;
+    }
+    function totals(txns, groupId, entity) {
+      const rows = txns.filter((t) => (!groupId || t.vatGroup === groupId) && (!entity || t.entity === entity));
+      let output = 0, input = 0, glOut = 0, glIn = 0;
+      rows.forEach((t) => {
+        const w = workingVat(t), s = Number(t.sourceVat) || 0;
+        if (t.type === "AR") { output += w; glOut += s; } else { input += w; glIn += s; }
+      });
+      return { output, input, net: output - input, glOut, glIn };
+    }
+    function pos(n) { return n >= 0 ? "PAYABLE" : "REFUND"; }
+    function posBadge(n) { return n >= 0 ? `<span class="badge b-pay">PAYABLE</span>` : `<span class="badge b-ref">REFUND</span>`; }
+    function can(action) {
+      const r = role();
+      if (action === "resolveException") return r === "Accountant";
+      if (action === "createAdjustment") return r === "Accountant";
+      if (action === "approveAdjustment") return r === "VAT Reviewer";
+      if (action === "signRecon") return r === "Finance Controller";
+      if (action === "signReturn") return r === SIGNOFF_STEPS[state.signoff[state.groupId] || 0];
+      if (action === "advanceRefund") return r === "DoF Tax Team";
+      if (action === "settings") return r === "Administrator";
+      return false;
+    }
+    function sodBlock(nextRole) {
+      return state.signoffLog.some((s) => s.groupId === state.groupId && s.user === state.username);
+    }
+    function audit(action, detail) {
+      state.audit.unshift({ ts: new Date().toISOString(), user: state.username, role: role(), action, detail, period: state.period, groupId: state.groupId });
+    }
+    function toast(msg) { state.toast = msg; setTimeout(() => { state.toast = null; render(); }, 1800); }
+    function permissionNote(allowed, needed) {
+      return allowed ? "" : `<div class="lock">${Icon.lock} Requires role: ${needed}</div>`;
+    }
+    function statusBadge(s) {
+      const map = { accepted: "b-ok", rejected: "b-muted", emergency_adjust: "b-bad", Open: "b-warn", Resolved: "b-ok", Eligible: "b-warn", Submitted: "b-warn", Tracking: "b-ok", Paid: "b-ok", Completed: "b-ok", Processing: "b-warn", "Awaiting Upload": "b-muted", "Pending Review": "b-warn", Approved: "b-ok", Rejected: "b-bad", "On Track": "b-ok", "At Risk": "b-warn", Blocked: "b-bad", "Within SLA": "b-ok", "SLA Risk": "b-warn", Medium: "b-warn", High: "b-bad", Low: "b-ok", Documented: "b-warn" };
+      const label = s === "emergency_adjust" ? "Emergency adjust" : (s ? s[0].toUpperCase() + s.slice(1).replace("_", " ") : "—");
+      return `<span class="badge ${map[s] || "b-info"}">${label}</span>`;
+    }
+
+    function impactText(t) {
+      const src = Number(t.sourceVat) || 0, work = workingVat(t), rec = Number(t.recommendedVat) || 0;
+      const d = work - src;
+      if (t.exceptionType === "Incorrect VAT" && t.exceptionStatus === "accepted") return "Incorrect VAT, Accepted, increases output VAT by " + money(Math.abs(d)) + ".";
+      if (t.exceptionType === "No VAT" && t.exceptionStatus === "rejected") return "No VAT, Rejected — no change to output VAT (recommendation of " + money(rec) + " not applied).";
+      if (t.exceptionType === "Duplicate data" && (t.exceptionStatus === "emergency_adjust" || t.exceptionStatus === "accepted")) return "Duplicate data, " + (t.exceptionStatus === "emergency_adjust" ? "Emergency adjust" : "Accepted") + ", reduces input VAT by " + money(src) + ".";
+      const side = t.type === "AR" ? "output VAT" : "input VAT";
+      if (!d) return t.exceptionType + ", " + (t.exceptionStatus || "") + " — no change to " + side + ".";
+      return t.exceptionType + " " + (d > 0 ? "increases" : "reduces") + " " + side + " by " + money(Math.abs(d)) + ".";
+    }
+
+    function reconRows() {
+      const out = [];
+      entitiesInGroup().forEach((ent) => {
+        if (!getAccessibleEntities(state.username).includes(ent)) return;
+        ["AR", "AP"].forEach((kind) => {
+          const list = state.txns.filter((t) => t.entity === ent && t.type === kind);
+          const gl = list.reduce((a, t) => a + (Number(t.sourceVat) || 0), 0);
+          const work = list.reduce((a, t) => a + workingVat(t), 0);
+          const diff = Math.abs(work - gl);
+          const driver = list.find((t) => workingVat(t) !== (Number(t.sourceVat) || 0));
+          out.push({
+            entity: ent, account: kind === "AR" ? "VAT Output Control" : "VAT Input Control",
+            gl, work, diff,
+            classification: !diff ? "Agrees — no difference" : (driver && driver.exceptionType === "Incorrect VAT"
+              ? "Explained — Incorrect VAT correction accepted, pending source correction"
+              : "Explained — duplicate removed in platform only under Emergency Adjust"),
+            route: !driver ? "n/a" : (driver.exceptionStatus === "accepted" ? "ACCEPT — notify source" : driver.exceptionStatus === "emergency_adjust" ? "EMERGENCY ADJUST — source flagged" : "REJECT — ERP stands"),
+            glBuilt: list.map((t) => t.id + " " + fmt(t.sourceVat)).join(" + ") || "Nil",
+            workBuilt: list.map((t) => t.id + " " + fmt(workingVat(t))).join(" + ") || "Nil",
+            txns: list
+          });
+        });
+      });
+      return out;
+    }
+
+    function groupTotals(id) {
+      if (id === "g3") return Object.assign({ glOut: GROUP3.output, glIn: GROUP3.input }, GROUP3);
+      return totals(state.txns, id);
+    }
+
+    function boxes(groupId, entity) {
+      const t = entity ? totals(state.txns, groupId, entity) : groupTotals(groupId);
+      const tx = state.txns.filter((x) => x.vatGroup === groupId && (!entity || x.entity === entity));
+      const std = tx.filter((x) => x.type === "AR" && x.appliedRate > 0).reduce((a, x) => a + x.netAmount, 0);
+      const zr = tx.filter((x) => x.type === "AR" && x.appliedRate === 0 && !x.exceptionType).reduce((a, x) => a + x.netAmount, 0);
+      return [
+        { box: "Box 1", label: "Standard-rated supplies (net)", amount: std },
+        { box: "Box 2", label: "Zero-rated supplies (net)", amount: zr },
+        { box: "Box 9", label: "Total output VAT", amount: t.output },
+        { box: "Box 10", label: "Total input VAT recoverable", amount: t.input },
+        { box: "Box 12", label: "Net VAT payable / (refund)", amount: t.net }
+      ];
+    }
+
+    function loginView() {
+      return `<div class="login"><div class="login-inner">
+        <h1>DoF VAT Compliance</h1>
+        <p class="sub">MVP prototype — choose a person to begin your session. Users and roles are carried from the v10 RBAC model.</p>
+        <div class="user-grid">
+          ${state.users.map((u) => {
+            const info = roleInfo(u.role);
+            const restricted = state.accessRules[u.name];
+            const acc = getAccessibleEntities(u.name);
+            return `<button class="user-card" data-act="login" data-user="${u.name}">
+              <div class="ico">${u.role === "Administrator" ? Icon.gear : u.role === "Finance Controller" ? Icon.shield : u.role === "DoF Tax Team" ? Icon.check : u.role === "VAT Reviewer" ? Icon.search : Icon.user}</div>
+              <div><strong>${u.name}</strong> <span class="badge b-ok">${u.role}</span></div>
+              <p class="hint">${info.blurb}</p>
+              <div class="hint" style="margin-top:8px">${restricted ? "Access: " + acc.join(", ") : "Access: all " + ALL_ENTITIES.length + " legal entities"}</div>
+            </button>`;
+          }).join("")}
+        </div>
+        <p class="hint" style="text-align:center;margin-top:22px;color:#7C8AA3">Illustrative data — VAT Groups 1–3 from Sample_Data.xlsx · Q2 2026</p>
+      </div></div>`;
+    }
+
+    function shell(inner) {
+      const acc = accessibleNow();
+      const showSettings = can("settings");
+      const idx = JOURNEY.findIndex((j) => j.id === state.screen);
+      return `<div class="shell">
+        <aside class="sidebar">
+          <div class="brand"><h1>DoF VAT<br/>Compliance</h1><p>MVP prototype · vanilla HTML</p></div>
+          <nav class="nav">
+            ${NAV.map((n) => `<button class="${state.screen === n.id ? "active" : ""}" data-act="goto" data-id="${n.id}">${Icon[n.icon] || ""} ${n.label}</button>`).join("")}
+            ${showSettings ? `<button class="${state.screen === "settings" ? "active" : ""}" data-act="goto" data-id="settings">${Icon.gear} Settings</button>` : ""}
+          </nav>
+          <div class="side-foot">Blue sample data · sheet 05 foot<br/>SoD: preparer cannot be final approver</div>
+        </aside>
+        <div class="main">
+          <div class="topbar">
+            <h2>${title()}</h2>
+            <div class="top-controls">
+              <select data-act="group">${VAT_GROUPS.map((g) => `<option value="${g.id}" ${g.id === state.groupId ? "selected" : ""}>${g.name}</option>`).join("")}</select>
+              <select data-act="period">${PERIODS.map((p) => `<option ${p === state.period ? "selected" : ""}>${p}</option>`).join("")}</select>
+              <select data-act="entity">${acc.length ? acc.map((e) => `<option ${e === state.entity ? "selected" : ""}>${e}</option>`).join("") : '<option value="">No entities in this group</option>'}</select>
+              <div class="user-chip">
+                <div class="avatar">${state.username.split(" ").map((w) => w[0]).slice(0, 2).join("")}</div>
+                <select data-act="user">${state.users.map((u) => `<option value="${u.name}" ${u.name === state.username ? "selected" : ""}>${u.name} — ${u.role}</option>`).join("")}</select>
+              </div>
+              <button class="btn btn-ghost" data-act="logout">Sign out</button>
+            </div>
+          </div>
+          ${idx >= 0 ? `<div class="stepper">${JOURNEY.map((j, i) => `<button class="step ${j.id === state.screen ? "active" : ""} ${i < state.furthest ? "done" : ""}" data-act="goto" data-id="${j.id}"><span class="n">${i < state.furthest ? "✓" : i + 1}</span>${j.label}</button>${i < JOURNEY.length - 1 ? '<span style="color:#D8DBE0">—</span>' : ""}`).join("")}</div>` : ""}
+          <div class="content">${inner}</div>
+        </div>
+      </div>${state.toast ? `<div class="toast">${state.toast}</div>` : ""}`;
+    }
+
+    function title() {
+      return {
+        dashboard: "Operational dashboard", dataintake: "Data upload & staging monitor",
+        validation: "Data validation", exceptions: "Exception management workbench",
+        adjustments: "Adjustment entry & approval", working: "VAT working — transaction detail", recon: "Reconciliation workbench",
+        return: "VAT return preparation & sign-off", refunds: "Refund processing & tracking",
+        reports: "Dashboards & reports", audit: "Audit trail viewer",
+        settings: "Settings — RBAC & segregation of duties"
+      }[state.screen] || "DoF VAT Compliance";
+    }
+
+    function paramBar() {
+      return `<div class="param"><span>Period: <strong>${state.period}</strong></span><span>Legal entity: <strong>${state.entity || "None accessible in this group"}</strong></span><span>Role: <strong>${role()}</strong></span></div>`;
+    }
+
+    function batchLines(id) {
+      const acc = getAccessibleEntities(state.username);
+      const vis = (rows) => rows.filter((t) => acc.includes(t.entity));
+      if (id === "B2") return vis(state.txns.filter((t) => t.type === "AP"));
+      if (id === "B3") return vis(state.txns.filter((t) => t.type === "AR"));
+      if (id === "B4") return vis(state.txns.filter((t) => t.id === "AP-B-101" || t.id === "AP-C-101"));
+      if (id === "B5") return vis(state.txns.filter((t) => t.id === "AR-C-002"));
+      if (id === "B6") {
+        const b = state.batches.find((x) => x.id === "B6");
+        return (b && b.status === "Completed") ? vis(state.txns.filter((t) => t.vatGroup === "g2")) : [];
+      }
+      return [];
+    }
+
+    function intakeView() {
+      return `${paramBar()}
+        <div class="card">
+          <div class="card-h">
+            <h3>Data upload & staging monitor</h3>
+            <button class="btn btn-teal" data-act="uploadBatch" ${state.uploading ? "disabled" : ""}>${Icon.upload} ${state.uploading ? "Uploading…" : "Upload Excel/CSV batch"}</button>
+          </div>
+          <table>
+            <thead><tr><th>Source</th><th class="num">Records</th><th>Last run</th><th>Status</th></tr></thead>
+            <tbody>
+              ${state.batches.map((b) => {
+                const clickable = b.records > 0;
+                const open = state.expandedBatch === b.id;
+                const lines = batchLines(b.id);
+                return `<tr class="${clickable ? "clickable" : ""} ${open ? "sel" : ""}" ${clickable ? `data-act="toggleBatch" data-id="${b.id}"` : ""}>
+                    <td><strong style="display:inline-flex;align-items:center;gap:6px">${clickable ? `<span style="display:inline-flex;transform:${open ? "rotate(90deg)" : "none"};transition:transform .15s">${Icon.chevron}</span>` : ""}${b.source}</strong></td>
+                    <td class="num">${b.records ? fmt(b.records) : "—"}</td>
+                    <td>${b.time}</td>
+                    <td>${statusBadge(b.status)}</td>
+                  </tr>
+                  ${open ? `<tr><td colspan="4" style="background:#FAFBFC">
+                    ${lines.length ? `<table><thead><tr><th>Transaction</th><th>Entity</th><th>VAT code</th><th class="num">Amount</th><th>Type</th></tr></thead>
+                    <tbody>${lines.map((t) => `<tr class="${t.exceptionType ? "exc" : ""}"><td>${t.id}</td><td>${t.entity}</td><td>${t.vatCode}</td><td class="num">${fmt(t.netAmount)}</td><td>${t.type}${t.exceptionType ? " · " + t.exceptionType : ""}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No sample transaction lines for this batch${b.id === "B1" ? " — GL extract is control-account totals only." : "."}</div>`}
+                  </td></tr>` : ""}`;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn btn-navy" data-act="goto" data-id="validation">Continue to validation</button></div>`;
+    }
+
+    function validationView() {
+      const totalRecords = state.batches.reduce((sum, b) => sum + (b.records || 0), 0);
+      const activeRules = state.rules.filter((r) => r.active);
+      const exceptions = state.txns.filter((t) => t.exceptionType && getAccessibleEntities(state.username).includes(t.entity));
+      const openCount = exceptions.length;
+      const byType = {};
+      exceptions.forEach((t) => { byType[t.exceptionType] = (byType[t.exceptionType] || 0) + 1; });
+      return `${paramBar()}
+        <div class="card">
+          <div class="card-b">
+            <h3 style="margin:0 0 6px;color:var(--navy)">Data validation</h3>
+            <p class="hint" style="margin-bottom:16px">Run the configurable, AI-enhanced rules engine against ingested data before proceeding to exception review.</p>
+            <div class="grid g3" style="margin-bottom:16px">
+              <div class="card kpi"><div class="lbl">Records ingested</div><div class="val">${fmt(totalRecords)}</div><div class="sub">Across all source systems</div></div>
+              <div class="card kpi"><div class="lbl">Active validation rules</div><div class="val">${activeRules.length}</div><div class="sub">R1 Incorrect VAT · R2 No VAT · R3 Duplicate</div></div>
+              <div class="card kpi"><div class="lbl">Entities in scope</div><div class="val">${ALL_ENTITIES.length}</div><div class="sub">VAT Groups 1–2 transactional · Group 3 summary</div></div>
+            </div>
+            ${state.validationStatus === "idle" ? `<button class="btn btn-navy" data-act="runValidation">${Icon.check} Run validation</button>` : `
+              <div style="margin-bottom:8px">${activeRules.map((r, i) => {
+                const isChecked = state.checkedCount > i;
+                const isChecking = state.validationStatus === "running" && state.checkedCount === i;
+                return `<div style="display:flex;align-items:center;gap:10px;margin:8px 0">
+                  <div class="dot ${isChecked ? "done" : ""}">${isChecked ? "✓" : (isChecking ? `<span class="pulse"></span>` : "")}</div>
+                  <span class="${isChecked ? "" : "hint"}">${r.name}<div class="hint">${r.trigger}</div></span>
+                </div>`;
+              }).join("")}</div>`}
+            ${state.validationStatus === "complete" ? `
+              <div class="${openCount ? "callout" : "okout"}" style="margin-top:14px">${openCount ? openCount + " exception(s) identified — review required before proceeding" : "No exceptions identified — data is clean"}</div>
+              ${openCount ? Object.keys(byType).map((ty) => `<div class="impact" style="display:flex;justify-content:space-between"><span>${ty}</span><strong>${byType[ty]}</strong></div>`).join("") : ""}
+            ` : ""}
+          </div>
+        </div>
+        ${state.validationStatus === "complete" ? `<div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn btn-navy" data-act="goto" data-id="exceptions">${openCount ? "Review exceptions" : "Continue to exceptions"}</button></div>` : ""}`;
+    }
+
+    function dashboardView() {
+      const r = role();
+      const openExc = filterRows(state.txns).filter((t) => t.exceptionType).length;
+      const g1 = groupTotals("g1"), g2 = groupTotals("g2"), g3 = groupTotals("g3");
+      const pendingAdj = visibleAdjustments().filter((a) => a.status === "Pending Review").length;
+      const task = {
+        Accountant: { text: openExc + " exception(s) in your accessible entities", id: "exceptions" },
+        "VAT Reviewer": { text: pendingAdj + " adjustment(s) awaiting your review", id: "adjustments" },
+        "Finance Controller": { text: "Reconciliation pack and entity VAT return await sign-off", id: "recon" },
+        "DoF Tax Team": { text: "VAT Group return awaiting final sign-off", id: "return" },
+        Administrator: { text: "6 users · entity access rules in Settings", id: "settings" }
+      }[r];
+      const max = Math.max(g1.output, g1.input, g2.output, g2.input, g3.output, g3.input, 1);
+      const card = (id, t, note) => `<article class="card kpi">
+        <div class="lbl">${VAT_GROUPS.find((g) => g.id === id).name}</div>
+        <div class="val" style="color:${t.net >= 0 ? "var(--maroon)" : "var(--ok)"}">${money(Math.abs(t.net))}</div>
+        <div class="sub">${posBadge(t.net)} Output ${fmt(t.output)} − Input ${fmt(t.input)}</div>
+        <div class="hint" style="margin-top:8px">${note}</div>
+        <div style="margin-top:10px" class="hint">Output</div>
+        <div class="bar"><i style="width:${(t.output / max) * 100}%"></i></div>
+        <div class="hint" style="margin-top:6px">Input</div>
+        <div class="bar"><i class="teal" style="width:${(t.input / max) * 100}%"></i></div>
+      </article>`;
+      const a = totals(state.txns, "g1", "Entity A"), b = totals(state.txns, "g1", "Entity B");
+      return `${paramBar()}
+        <div class="card" style="background:#F0F4F8;margin-bottom:14px">
+          <div class="card-b" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div><div class="hint">Your next task</div><strong>${task.text}</strong></div>
+            <button class="btn btn-navy" data-act="goto" data-id="${task.id}">Go to task</button>
+          </div>
+        </div>
+        <div class="grid g4" style="margin-bottom:14px">
+          <div class="card kpi"><div class="lbl">Group 1 net</div><div class="val" style="color:var(--maroon)">${money(g1.net)}</div><div class="sub">PAYABLE · Entity A ${fmt(Math.abs(a.net))} pay / Entity B ${fmt(Math.abs(b.net))} refund</div></div>
+          <div class="card kpi"><div class="lbl">Group 2 net</div><div class="val" style="color:var(--ok)">${money(Math.abs(g2.net))}</div><div class="sub">REFUND · capital spend AP-C-101</div></div>
+          <div class="card kpi"><div class="lbl">Open exceptions (accessible)</div><div class="val">${openExc}</div><div class="sub">Incorrect VAT · No VAT · Duplicate data</div></div>
+          <div class="card kpi"><div class="lbl">Sign-off stage (${VAT_GROUPS.find((g)=>g.id===state.groupId).name})</div><div class="val">${state.signoff[state.groupId]}/${SIGNOFF_STEPS.length}</div><div class="sub">${state.signoff[state.groupId] >= 4 ? "Submitted" : "Awaiting " + SIGNOFF_STEPS[state.signoff[state.groupId]]}</div></div>
+        </div>
+        <div class="grid g3">
+          ${card("g1", g1, "Entity B is a refund sitting inside a group payable.")}
+          ${card("g2", g2, "Three clean lines. Demonstrates multi-group refund.")}
+          ${card("g3", g3, "Summary only — no transaction drill-down.")}
+        </div>`;
+    }
+
+    function reportsView() {
+      const acc = getAccessibleEntities(state.username);
+      const selected = Number(state.reportItem) || 1;
+      const item = REPORT_ITEMS.find((i) => i.id === selected) || REPORT_ITEMS[0];
+      const openExcAll = state.txns.filter((t) => t.exceptionType && acc.includes(t.entity));
+      const g2 = groupTotals("g2");
+      const amt = (n) => n < 0 ? "(" + fmt(Math.abs(n)) + ")" : fmt(n);
+      const riskColor = (v) => v >= 4 ? "#8C3B3B" : v === 3 ? "#C9A227" : "#0E7C7B";
+      const opsStatus = (e) => {
+        const n = state.txns.filter((t) => t.entity === e && t.exceptionType && t.exceptionStatus !== "rejected").length;
+        return n ? { task: "At Risk", sla: "SLA Risk" } : { task: "On Track", sla: "Within SLA" };
+      };
+      const boxLines = (box) => {
+        const rows = state.txns.filter((t) => acc.includes(t.entity) && t.vatGroup === state.groupId && (!state.entity || t.entity === state.entity));
+        if (box === "Box 1") return rows.filter((t) => t.type === "AR" && t.appliedRate > 0).map((t) => ({ id: t.id, entity: t.entity, amount: t.netAmount }));
+        if (box === "Box 2") return rows.filter((t) => t.type === "AR" && t.appliedRate === 0 && !t.exceptionType).map((t) => ({ id: t.id, entity: t.entity, amount: t.netAmount }));
+        if (box === "Box 9") return rows.filter((t) => t.type === "AR").map((t) => ({ id: t.id, entity: t.entity, amount: workingVat(t) }));
+        if (box === "Box 10") return rows.filter((t) => t.type === "AP").map((t) => ({ id: t.id, entity: t.entity, amount: workingVat(t) }));
+        return rows.filter((t) => workingVat(t)).map((t) => ({ id: t.id, entity: t.entity, amount: workingVat(t) }));
+      };
+      let body = "";
+      if (selected === 1) {
+        body = `<table><thead><tr><th>Entity</th><th>Task status</th><th>SLA</th></tr></thead><tbody>
+            ${acc.map((e) => { const s = opsStatus(e); return `<tr><td><strong>${e}</strong></td><td>${statusBadge(s.task)}</td><td>${statusBadge(s.sla)}</td></tr>`; }).join("")}
+          </tbody></table>`;
+      } else if (selected === 2) {
+        const types = ["Incorrect VAT", "No VAT", "Duplicate data"];
+        const maxC = Math.max(1, ...types.map((ty) => openExcAll.filter((t) => t.exceptionType === ty).length));
+        body = types.map((ty) => {
+          const n = openExcAll.filter((t) => t.exceptionType === ty).length;
+          return `<div style="margin:10px 0"><div style="display:flex;justify-content:space-between" class="hint"><span>${ty}</span><span>${n}</span></div><div class="bar"><i class="teal" style="width:${(n / maxC) * 100}%"></i></div></div>`;
+        }).join("") + `<table style="margin-top:16px"><thead><tr><th>Entity</th><th>Open exceptions</th></tr></thead><tbody>
+          ${acc.map((e) => `<tr><td>${e}</td><td>${state.txns.filter((t) => t.entity === e && t.exceptionType).length}</td></tr>`).join("")}
+        </tbody></table>`;
+      } else if (selected === 3) {
+        body = `<table><thead><tr><th>Entity</th><th>Data quality</th><th>Timeliness</th><th>Control exceptions</th></tr></thead><tbody>
+          ${seedRisk.filter((row) => acc.includes(row.entity)).map((row) => `<tr>
+            <td><strong>${row.entity}</strong></td>
+            ${["dataQuality", "timeliness", "controls"].map((k) => `<td><div class="score" style="background:${riskColor(row[k])}">${row[k]}/5</div></td>`).join("")}
+          </tr>`).join("")}
+        </tbody></table>
+        <p class="hint" style="margin-top:12px">Accepted Incorrect VAT and Emergency Adjust create explained GL differences until source is corrected.</p>`;
+      } else if (selected === 4) {
+        const entity = state.groupId === "g3" ? "" : state.entity;
+        const t = entity ? totals(state.txns, state.groupId, entity) : groupTotals(state.groupId);
+        const boxRows = boxes(state.groupId, entity);
+        body = `<table><thead><tr><th>Box</th><th>Label</th><th class="num">Amount (AED)</th></tr></thead><tbody>
+          ${boxRows.map((b) => `<tr><td>${b.box}</td><td>${b.label}</td><td class="num">${fmt(b.amount)}</td></tr>`).join("")}
+        </tbody></table>
+        <div style="margin-top:12px;background:var(--navy);color:#fff;border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between">
+          <span>Net VAT ${t.net >= 0 ? "payable" : "refund"} (Box 12)</span><strong>${money(Math.abs(t.net))}</strong>
+        </div>`;
+      } else if (selected === 5) {
+        const rows = reconRows();
+        body = rows.length ? `<table><thead><tr><th>Entity</th><th>Control account</th><th class="num">GL</th><th class="num">VAT working</th><th class="num">Difference</th><th>Status</th></tr></thead><tbody>
+          ${rows.map((row) => `<tr><td>${row.entity}</td><td>${row.account}</td><td class="num">${fmt(row.gl)}</td><td class="num">${fmt(row.work)}</td>
+            <td class="num">${fmt(row.diff)}</td><td>${row.diff ? statusBadge("At Risk") : statusBadge("On Track")}</td></tr>`).join("")}
+        </tbody></table>` : `<div class="empty">No reconciliation data for this Period / VAT Group / access combination.</div>`;
+      } else if (selected === 6) {
+        const rows = state.adjustments.filter((x) => acc.includes(x.entity) && x.period === state.period);
+        body = rows.length ? `<table><thead><tr><th>ID</th><th>Entity</th><th>Type</th><th class="num">Amount (AED)</th><th>Preparer</th><th>Status</th></tr></thead><tbody>
+          ${rows.map((x) => `<tr><td><strong>${x.id}</strong></td><td>${x.entity}</td><td>${x.type}</td><td class="num" ${x.amount < 0 ? 'style="color:var(--maroon)"' : ""}>${amt(x.amount)}</td><td>${x.preparer}</td><td>${statusBadge(x.status)}</td></tr>`).join("")}
+        </tbody></table>` : `<div class="empty">No adjustments for this period and access combination.</div>`;
+      } else if (selected === 7) {
+        const rows = openExcAll.slice().sort((x, y) => (EXC_AGE[y.id] || 0) - (EXC_AGE[x.id] || 0));
+        body = rows.length ? `<table><thead><tr><th>ID</th><th>Entity</th><th>Type</th><th>Severity</th><th class="num">Age (days)</th></tr></thead><tbody>
+          ${rows.map((x) => `<tr><td><strong>${x.id}</strong></td><td>${x.entity}</td><td>${x.exceptionType}</td><td>${statusBadge(EXC_SEV[x.exceptionType] || "Low")}</td><td class="num">${EXC_AGE[x.id] || 1}</td></tr>`).join("")}
+        </tbody></table>` : `<div class="empty">No outstanding exceptions.</div>`;
+      } else if (selected === 8) {
+        const boxOpts = boxes(state.groupId, state.groupId === "g3" ? "" : state.entity);
+        const lines = boxLines(state.auditBox);
+        body = `<select data-act="auditBox" style="margin-bottom:12px;padding:8px;border:1px solid var(--line);border-radius:8px">
+          ${boxOpts.map((b) => `<option value="${b.box}" ${b.box === state.auditBox ? "selected" : ""}>${b.box} — ${b.label}</option>`).join("")}
+        </select>
+        <table><thead><tr><th>Transaction</th><th>Entity</th><th class="num">Amount (AED)</th></tr></thead><tbody>
+          ${lines.length ? lines.map((x) => `<tr><td><strong>${x.id}</strong></td><td>${x.entity}</td><td class="num">${fmt(x.amount)}</td></tr>`).join("") : `<tr><td colspan="3" class="empty">No contributing transactions in this sample for ${state.auditBox}.</td></tr>`}
+        </tbody></table>`;
+      } else if (selected === 9) {
+        const show = acc.includes("Entity C");
+        body = show ? `<table><thead><tr><th>ID</th><th>Entity</th><th class="num">Amount (AED)</th><th>Stage</th><th class="num">Days</th></tr></thead><tbody>
+          <tr><td><strong>RF-201</strong></td><td>Entity C</td><td class="num">${fmt(Math.abs(g2.net))}</td><td>${statusBadge(state.refund.status)}</td><td class="num">9</td></tr>
+        </tbody></table>` : `<div class="empty">No refund claims in your accessible entities.</div>`;
+      } else if (selected === 10) {
+        body = `<table><thead><tr><th>Entity</th><th class="num">Output tax</th><th class="num">Input tax</th><th class="num">Net position</th></tr></thead><tbody>
+          ${acc.map((e) => { const t = totals(state.txns, groupOf(e), e); return `<tr><td><strong>${e}</strong></td><td class="num">${fmt(t.output)}</td><td class="num">${fmt(t.input)}</td><td class="num"><strong>${fmt(t.net)}</strong> ${posBadge(t.net)}</td></tr>`; }).join("")}
+        </tbody></table>`;
+      } else if (selected === 11) {
+        body = ["g1", "g2", "g3"].map((id) => {
+          const stage = state.signoff[id] || 0;
+          const pct = (stage / SIGNOFF_STEPS.length) * 100;
+          return `<div style="margin:12px 0"><div style="display:flex;justify-content:space-between" class="hint"><span>${VAT_GROUPS.find((g) => g.id === id).name}</span><span>${stage}/${SIGNOFF_STEPS.length} stages</span></div>
+            <div class="bar" style="height:10px"><i class="${pct === 100 ? "teal" : ""}" style="width:${pct}%;background:${pct === 100 ? "var(--teal)" : "var(--gold)"}"></i></div></div>`;
+        }).join("");
+      } else {
+        const live = Math.abs(groupTotals(state.groupId).net) / 1000;
+        const values = [28, 44, 29, 51, 33, Math.max(8, live)];
+        const labels = ["Q1 25", "Q2 25", "Q3 25", "Q4 25", "Q1 26", "Q2 26"];
+        const maxV = Math.max(...values);
+        body = `<div style="display:flex;align-items:flex-end;gap:14px;height:160px">
+          ${values.map((v, i) => `<div style="flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px">
+            <div style="width:100%;height:${(v / maxV) * 100}%;background:${i === values.length - 1 ? "var(--teal)" : "#C7D6E0"};border-radius:6px 6px 0 0"></div>
+            <div class="hint">${labels[i]}</div>
+          </div>`).join("")}
+        </div>
+        <p class="hint" style="margin-top:10px">Q2 2026 bar is the current ${VAT_GROUPS.find((g) => g.id === state.groupId).name} net position (AED '000).</p>`;
+      }
+      return `${paramBar()}
+        <div class="grid g-dash">
+          <div class="card" style="overflow:hidden">
+            <div class="cat-h">DASHBOARDS</div>
+            ${REPORT_ITEMS.filter((i) => i.cat === "Dashboard").map((i) => `<button class="cat-btn ${selected === i.id ? "on" : ""}" data-act="reportItem" data-id="${i.id}">${i.id}. ${i.name}</button>`).join("")}
+            <div class="cat-h" style="border-top:1px solid #EEF0F3;margin-top:4px">REPORTS</div>
+            ${REPORT_ITEMS.filter((i) => i.cat === "Report").map((i) => `<button class="cat-btn ${selected === i.id ? "on" : ""}" data-act="reportItem" data-id="${i.id}">${i.id}. ${i.name}</button>`).join("")}
+          </div>
+          <div class="card">
+            <div class="card-h">
+              <div><h3>${item.name}</h3><p class="hint" style="margin:4px 0 0">${item.purpose}</p></div>
+              ${item.cat === "Report" ? `<button class="btn btn-ghost" data-act="exportReport">Export PDF</button>` : ""}
+            </div>
+            <div class="card-b">${body}</div>
+          </div>
+        </div>`;
+    }
+
+    function exceptionsView() {
+      const rows = filterRows(state.txns).filter((t) => t.exceptionType);
+      const sel = state.txns.find((t) => t.id === state.selectedExc) || rows[0];
+      if (sel && sel.id !== state.selectedExc) state.selectedExc = sel.id;
+      const recLabel = (t) => t.exceptionType === "Incorrect VAT" ? "Change Exempt to SR 5% (" + fmt(t.recommendedVat) + ")" : t.exceptionType === "No VAT" ? "Apply SR 5% (" + fmt(t.recommendedVat) + ")" : "Remove duplicate input VAT (" + fmt(t.sourceVat) + ")";
+      return `${paramBar()}
+        <div class="grid g2">
+          <div class="card">
+            <div class="card-h"><h3>Flagged exceptions</h3><span class="hint">${rows.length} in current group / access</span></div>
+            <table>
+              <thead><tr><th>ID</th><th>Entity</th><th>Type</th><th class="num">Impact (AED)</th><th>Outcome</th></tr></thead>
+              <tbody>
+                ${rows.length ? rows.map((t) => `<tr class="clickable ${state.selectedExc === t.id ? "sel" : ""} ${t.exceptionType === "Duplicate data" ? "exc-dup" : "exc"}" data-act="selectExc" data-id="${t.id}">
+                  <td><strong>${t.id}</strong></td><td>${t.entity}</td><td>${t.exceptionType}</td>
+                  <td class="num">${fmt(Math.abs(workingVat(t) - (Number(t.sourceVat) || 0)) || t.recommendedVat)}</td>
+                  <td>${statusBadge(t.exceptionStatus)}</td>
+                </tr>`).join("") : `<tr><td colspan="5" class="empty">No exceptions for this Period / VAT Group / access combination. Group 2 is clean by design. Group 3 has no transactions.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            ${sel && rows.some((t) => t.id === sel.id) ? `<div class="card-b">
+              <div class="hint">${sel.id} · ${sel.type} · ${sel.vatCode}</div>
+              <h3 style="margin:4px 0 8px;color:var(--navy)">${sel.entity} — ${sel.description}</h3>
+              <p class="hint">Net ${money(sel.netAmount)}</p>
+              <div class="callout" style="margin:12px 0"><strong>Recommendation:</strong> ${recLabel(sel)}</div>
+              <div class="impact"><strong>Effect on the return.</strong> ${impactText(sel)}</div>
+              <div class="impact"><strong>Effect on GL.</strong> ${workingVat(sel) === (Number(sel.sourceVat) || 0) ? "No difference. Source and working agree." : "Creates a " + money(Math.abs(workingVat(sel) - sel.sourceVat)) + " difference until source is corrected."}</div>
+              <p class="hint">${sel.explanation}</p>
+              <label class="hint">Outcome taken</label>
+              <select data-act="excStatus" data-id="${sel.id}" ${can("resolveException") ? "" : "disabled"} style="width:100%;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px">
+                <option value="accepted" ${sel.exceptionStatus === "accepted" ? "selected" : ""}>Accept — notify source</option>
+                <option value="rejected" ${sel.exceptionStatus === "rejected" ? "selected" : ""}>Reject — ERP treatment stands</option>
+                <option value="emergency_adjust" ${sel.exceptionStatus === "emergency_adjust" ? "selected" : ""}>Emergency adjust — platform only</option>
+              </select>
+              ${permissionNote(can("resolveException"), "Accountant")}
+              <p class="hint" style="margin-top:10px">Changing outcome recalculates VAT working, GL variance and Box 12. Sign-off for this group is reset if already started.</p>
+            </div>` : `<div class="empty">Select a row to review the exception.</div>`}
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn btn-navy" data-act="goto" data-id="adjustments">Continue to adjustments</button></div>`;
+    }
+
+    function adjustmentsView() {
+      const rows = visibleAdjustments();
+      const canCreate = can("createAdjustment") && accessibleNow().length > 0;
+      const canApprove = can("approveAdjustment");
+      const ents = accessibleNow();
+      const amt = (n) => n < 0 ? "(" + fmt(Math.abs(n)) + ")" : fmt(n);
+      return `${paramBar()}
+        <div class="card">
+          <div class="card-h">
+            <h3>Adjustment entry & approval</h3>
+            <div>
+              <button class="btn btn-navy" data-act="showAdjForm" ${canCreate ? "" : "disabled"}>+ New adjustment</button>
+              ${permissionNote(can("createAdjustment"), "Accountant")}
+            </div>
+          </div>
+          ${state.showAdjForm ? `<div class="grid g4" style="padding:16px;background:#F7F8FA;border-bottom:1px solid #EEF0F3;align-items:end">
+            <div>
+              <label class="hint">Entity</label>
+              <select id="adj-entity" style="width:100%;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px">
+                ${ents.map((e) => `<option ${e === state.entity ? "selected" : ""}>${e}</option>`).join("")}
+              </select>
+            </div>
+            <div>
+              <label class="hint">Adjustment type</label>
+              <select id="adj-type" style="width:100%;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px">
+                ${ADJ_TYPES.map((ty) => `<option>${ty}</option>`).join("")}
+              </select>
+            </div>
+            <div>
+              <label class="hint">Amount (AED)</label>
+              <input id="adj-amount" required type="number" style="width:100%;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px" />
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-teal" style="flex:1" data-act="submitAdj">Submit</button>
+              <button class="btn btn-ghost" style="flex:1" data-act="cancelAdj">Cancel</button>
+            </div>
+          </div>` : ""}
+          <table>
+            <thead><tr><th>ID</th><th>Entity</th><th>Type</th><th class="num">Amount (AED)</th><th>Preparer</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              ${rows.length ? rows.map((c) => `<tr>
+                <td><strong>${c.id}</strong></td>
+                <td>${c.entity}</td>
+                <td>${c.type}</td>
+                <td class="num" ${c.amount < 0 ? 'style="color:var(--maroon)"' : ""}>${amt(c.amount)}</td>
+                <td>${c.preparer}</td>
+                <td>${statusBadge(c.status)}</td>
+                <td>${c.status === "Pending Review" ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <button class="btn btn-teal" style="padding:5px 10px;font-size:12px" data-act="adjStatus" data-id="${c.id}" data-status="Approved" ${canApprove ? "" : "disabled"}>Approve</button>
+                    <button class="btn" style="padding:5px 10px;font-size:12px;background:#F1E4E4;color:var(--maroon)" data-act="adjStatus" data-id="${c.id}" data-status="Rejected" ${canApprove ? "" : "disabled"}>Reject</button>
+                  </div>${permissionNote(canApprove, "VAT Reviewer")}` : `<span class="hint">—</span>`}
+                </td>
+              </tr>`).join("") : `<tr><td colspan="7" class="empty">No adjustments for this Period / VAT Group combination.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn btn-navy" data-act="goto" data-id="recon">Continue to reconciliation</button></div>`;
+    }
+
+    function workingView() {
+      const rows = filterRows(state.txns);
+      const t = totals(state.txns, state.groupId, state.entity || undefined);
+      return `${paramBar()}
+        <div class="card">
+          <div class="card-h"><h3>VAT working lines</h3><span class="badge b-info">${state.entity || VAT_GROUPS.find((g)=>g.id===state.groupId).name}</span></div>
+          ${state.groupId === "g3" ? `<div class="card-b"><div class="callout">VAT Group 3 is summary-only. Output 320,000 / Input 210,000 / Net payable 110,000.</div></div>` : ""}
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>ID</th><th>Entity</th><th>Type</th><th>Description</th><th class="num">Net</th><th>Code</th><th class="num">Rate</th><th class="num">Working VAT</th><th>Exception</th></tr></thead>
+              <tbody>
+                ${rows.length ? rows.map((trow) => {
+                  const w = workingVat(trow), s = Number(trow.sourceVat) || 0;
+                  return `<tr class="${trow.exceptionType ? (trow.exceptionType === "Duplicate data" ? "exc-dup" : "exc") : ""}">
+                    <td><strong>${trow.id}</strong></td><td>${trow.entity}</td><td>${trow.type === "AR" ? "AR — Output" : "AP — Input"}</td>
+                    <td>${trow.description}<div class="hint">${trow.explanation}</div></td>
+                    <td class="num">${fmt(trow.netAmount)}</td><td>${trow.vatCode}</td><td class="num">${(trow.appliedRate * 100).toFixed(0)}%</td>
+                    <td class="num">${fmt(w)}${w !== s ? `<div class="hint">GL / extract: ${fmt(s)}</div>` : ""}</td>
+                    <td>${trow.exceptionType ? `<span class="badge b-warn">${trow.exceptionType}</span><div>${statusBadge(trow.exceptionStatus)}</div>` : `<span class="badge b-ok">Clean</span>`}</td>
+                  </tr>`;
+                }).join("") : `<tr><td colspan="9" class="empty">No transactions in this filter.</td></tr>`}
+              </tbody>
+              ${rows.length && state.groupId !== "g3" ? `<tfoot>
+                <tr>
+                  <td colspan="7"><strong>Working VAT total</strong><div class="hint">Matches VAT Return Box 9 / 10 / 12 for this group and entity.</div></td>
+                  <td class="num">
+                    <div class="hint">Output (Box 9)</div><strong>${fmt(t.output)}</strong>
+                    <div class="hint" style="margin-top:6px">Input (Box 10)</div><strong>${fmt(t.input)}</strong>
+                    <div class="hint" style="margin-top:6px">Net (Box 12)</div><strong>${fmt(t.net)} ${pos(t.net)}</strong>
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>` : ""}
+            </table>
+          </div>
+        </div>`;
+    }
+
+    function reconView() {
+      const rows = reconRows();
+      const signed = state.reconSigned[state.groupId];
+      return `${paramBar()}
+        <div class="callout" style="margin-bottom:12px">GL balance is the BEFORE picture (source posted). VAT working is the AFTER picture (accepted corrections and emergency adjustments). Reconciliation is at control-account total level.</div>
+        <div class="card">
+          <div class="card-h"><h3>GL to VAT working</h3>${signed ? `<span class="badge b-ok">Pack signed by Finance Controller</span>` : `<span class="badge b-warn">Unsigned</span>`}</div>
+          ${state.groupId === "g3" ? `<div class="card-b"><div class="callout">VAT Group 3 has no GL rows.</div></div>` : ""}
+          <table>
+            <thead><tr><th>Entity</th><th>Control account</th><th class="num">GL</th><th class="num">VAT working</th><th class="num">Difference</th><th>Classification</th><th>Route</th></tr></thead>
+            <tbody>
+              ${rows.length ? rows.map((r) => `<tr class="${r.diff ? "exc" : ""}">
+                <td>${r.entity}</td><td>${r.account}</td><td class="num">${fmt(r.gl)}</td><td class="num">${fmt(r.work)}</td>
+                <td class="num" style="color:${r.diff ? "var(--maroon)" : "var(--ok)"};font-weight:700">${fmt(r.diff)}</td>
+                <td>${r.classification}<div class="hint">GL: ${r.glBuilt}. Working: ${r.workBuilt}.</div></td>
+                <td>${r.route}</td>
+              </tr>`).join("") : `<tr><td colspan="7" class="empty">No reconciliation data for this Period / VAT Group / access combination.</td></tr>`}
+            </tbody>
+          </table>
+          <div class="card-b">
+            <button class="btn btn-teal" data-act="signRecon" ${can("signRecon") && !signed ? "" : "disabled"}>${signed ? "Pack already signed" : "Sign reconciliation pack"}</button>
+            ${permissionNote(can("signRecon"), "Finance Controller")}
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn btn-navy" data-act="goto" data-id="return">Continue to VAT return</button></div>`;
+    }
+
+    function returnView() {
+      const gid = state.groupId;
+      if (!state.entity && gid !== "g3") {
+        return `${paramBar()}
+          <div class="card"><div class="empty">No legal entity is selected in this VAT Group, so the return is not shown. Switch to a group that contains an entity you can access.</div></div>`;
+      }
+      const entity = gid === "g3" ? "" : state.entity;
+      const t = entity ? totals(state.txns, gid, entity) : groupTotals(gid);
+      const boxRows = boxes(gid, entity);
+      const stage = state.signoff[gid] || 0;
+      const done = stage >= SIGNOFF_STEPS.length;
+      const required = SIGNOFF_STEPS[stage];
+      const allow = can("signReturn") && !sodBlock() && !done;
+      const payload = {
+        vatGroup: VAT_GROUPS.find((g) => g.id === gid).name, entity: entity || null, period: state.period,
+        outputVat: t.output, inputVat: t.input, net: t.net, position: pos(t.net), boxes: boxRows
+      };
+      return `${paramBar()}
+        <div class="grid g2">
+          <div class="card">
+            <div class="card-h"><h3>${VAT_GROUPS.find((g)=>g.id===gid).name}${entity ? " · " + entity : ""} · ${state.period}</h3>${posBadge(t.net)}</div>
+            <div class="card-b">
+              ${boxRows.map((b) => `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F5F6F8"><div><div class="hint">${b.box}</div>${b.label}</div><strong>${fmt(b.amount)}</strong></div>`).join("")}
+              <div style="margin-top:14px;background:var(--navy);color:#fff;border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between">
+                <span>Net VAT ${t.net >= 0 ? "payable" : "refund"} (Box 12)</span><strong>${money(Math.abs(t.net))}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h3>Review & sign-off</h3></div>
+            <div class="card-b">
+              ${SIGNOFF_STEPS.map((s, i) => `<div class="sign"><div class="dot ${i < stage ? "done" : i === stage ? "on" : ""}">${i < stage ? "✓" : i + 1}</div><div>${s}${state.signoffLog.filter((x) => x.groupId === gid && x.role === s).map((x) => `<div class="hint">${x.user} · ${x.ts.slice(11, 16)}</div>`).join("")}</div></div>`).join("")}
+              ${done ? `<div class="okout">Fully signed off. Submission file available.</div>` : `
+                <button class="btn btn-navy" style="width:100%;margin-top:8px" data-act="signReturn" ${allow ? "" : "disabled"}>Approve as ${required}</button>
+                ${permissionNote(role() === required, required)}
+                ${sodBlock() ? `<div class="lock">Segregation of duties: ${state.username} already signed an earlier step on this group and cannot also be a later approver.</div>` : ""}`}
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-h"><h3>VAT return file (JSON)</h3></div>
+          <div class="card-b">
+            <pre>${JSON.stringify(payload, null, 2)}</pre>
+            <p class="hint">${done ? "File is submission-ready after four-eyes sign-off." : "Download would unlock after DoF Tax Team approval (" + stage + "/4)."}</p>
+          </div>
+        </div>`;
+    }
+
+    function refundsView() {
+      const g2 = groupTotals("g2");
+      const steps = ["Eligible", "Documented", "Approved", "Submitted", "Tracking"];
+      const idx = steps.indexOf(state.refund.status);
+      return `${paramBar()}
+        <div class="card">
+          <div class="card-h"><h3>Refund claim — VAT Group 2 (Entity C)</h3>${statusBadge(state.refund.status)}</div>
+          <div class="card-b">
+            <p>Net position ${money(g2.net)} ${posBadge(g2.net)}. Driven by AP-C-101 capital purchase (input 60,000) against output 40,000.</p>
+            <p class="hint">${state.refund.note}</p>
+            <div style="margin:16px 0">${steps.map((s, i) => `<span class="badge ${i <= idx ? "b-ok" : "b-muted"}" style="margin-right:6px">${i + 1}. ${s}</span>`).join("")}</div>
+            <button class="btn btn-teal" data-act="advanceRefund" ${can("advanceRefund") && idx < steps.length - 1 ? "" : "disabled"}>${idx < steps.length - 1 ? "Advance to " + steps[idx + 1] : "At tracking"}</button>
+            ${permissionNote(can("advanceRefund"), "DoF Tax Team")}
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-h"><h3>Group comparison</h3></div>
+          <table>
+            <thead><tr><th>VAT Group</th><th class="num">Output</th><th class="num">Input</th><th class="num">Net</th><th>Position</th></tr></thead>
+            <tbody>${["g1","g2","g3"].map((id) => { const t = groupTotals(id); return `<tr><td>${VAT_GROUPS.find((g)=>g.id===id).name}</td><td class="num">${fmt(t.output)}</td><td class="num">${fmt(t.input)}</td><td class="num">${fmt(t.net)}</td><td>${posBadge(t.net)}</td></tr>`; }).join("")}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function auditView() {
+      return `${paramBar()}
+        <div class="card">
+          <div class="card-h"><h3>Immutable audit trail</h3><span class="hint">${state.audit.length} event(s)</span></div>
+          <table>
+            <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th><th>Detail</th></tr></thead>
+            <tbody>
+              ${state.audit.length ? state.audit.map((a) => `<tr><td>${a.ts.replace("T", " ").slice(0, 19)}</td><td>${a.user}</td><td>${a.role}</td><td>${a.action}</td><td>${a.detail}</td></tr>`).join("") : `<tr><td colspan="5" class="empty">No actions yet this session.</td></tr>`}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function settingsView() {
+      if (!can("settings")) return `<div class="card"><div class="empty">Administrator role required.</div></div>`;
+      return `${paramBar()}
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-h"><h3>User & role management (RBAC)</h3></div>
+          <table>
+            <thead><tr><th>User</th><th>Assigned role</th></tr></thead>
+            <tbody>${state.users.map((u) => `<tr><td><strong>${u.name}</strong></td><td>
+              <select data-act="changeRole" data-user="${u.name}">${ROLES.map((r) => `<option ${r.id === u.role ? "selected" : ""}>${r.id}</option>`).join("")}</select>
+            </td></tr>`).join("")}</tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Legal entity access</h3><p class="hint">Keyed by username, not role — two Accountants can see different entities. Unlisted users are unrestricted (fail-open). Changes take effect immediately; switch user top-right to verify.</p></div></div>
+          ${state.users.map((u) => {
+            const restricted = !!state.accessRules[u.name];
+            const ents = getAccessibleEntities(u.name);
+            return `<div style="padding:14px 16px;border-top:1px solid #F5F6F8">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div><strong>${u.name}</strong><div class="hint">${u.role} · ${restricted ? ents.length + " of " + ALL_ENTITIES.length + " entities" : "All " + ALL_ENTITIES.length + " entities"}</div></div>
+                <button class="toggle ${restricted ? "on" : ""}" data-act="toggleRestrict" data-user="${u.name}"><i></i></button>
+              </div>
+              ${restricted ? `<div style="margin-top:8px">${ALL_ENTITIES.map((e) => `<label class="chk"><input type="checkbox" data-act="toggleEntity" data-user="${u.name}" data-ent="${e}" ${ents.includes(e) ? "checked" : ""}/> ${e} (${groupOf(e) || "—"})</label>`).join("")}</div>` : ""}
+            </div>`;
+          }).join("")}
+          <div class="card-b"><div class="callout">SoD: a user who has already signed one step of a VAT Group return cannot sign a later step, even if their role is changed.</div></div>
+        </div>`;
+    }
+
+    function render() {
+      const acc = accessibleNow();
+      if (state.loggedIn && acc.length && !acc.includes(state.entity)) state.entity = acc[0];
+      if (state.loggedIn && !acc.length) state.entity = "";
+      let html;
+      if (!state.loggedIn) html = loginView();
+      else {
+        const views = { dashboard: dashboardView, dataintake: intakeView, validation: validationView, exceptions: exceptionsView, adjustments: adjustmentsView, working: workingView, recon: reconView, return: returnView, refunds: refundsView, reports: reportsView, audit: auditView, settings: settingsView };
+        html = shell((views[state.screen] || dashboardView)());
+      }
+      document.getElementById("app").innerHTML = html;
+    }
+
+    function syncEntityAfterUser() {
+      const acc = accessibleNow();
+      state.entity = acc[0] || "";
+    }
+
+    document.getElementById("app").addEventListener("click", (e) => {
+      const t = e.target.closest("[data-act]");
+      if (!t) return;
+      const act = t.getAttribute("data-act");
+      if (act === "login") {
+        state.username = t.getAttribute("data-user"); state.loggedIn = true; state.screen = "dashboard";
+        syncEntityAfterUser(); audit("Login", "Session started as " + state.username + " (" + role() + ")"); render(); return;
+      }
+      if (act === "logout") { audit("Logout", "Session ended"); state.loggedIn = false; render(); return; }
+      if (act === "goto") {
+        const id = t.getAttribute("data-id");
+        if (id === "settings" && !can("settings")) { toast("Settings requires Administrator"); return; }
+        state.screen = id;
+        const ji = JOURNEY.findIndex((j) => j.id === id);
+        if (ji > state.furthest) state.furthest = ji;
+        render(); return;
+      }
+      if (act === "selectExc") { state.selectedExc = t.getAttribute("data-id"); render(); return; }
+      if (act === "showAdjForm") {
+        if (!can("createAdjustment")) return;
+        state.showAdjForm = true; render(); return;
+      }
+      if (act === "cancelAdj") { state.showAdjForm = false; render(); return; }
+      if (act === "submitAdj") {
+        if (!can("createAdjustment")) return;
+        const entity = (document.getElementById("adj-entity") || {}).value;
+        const type = (document.getElementById("adj-type") || {}).value;
+        const amount = Number((document.getElementById("adj-amount") || {}).value);
+        if (!entity || !type || !Number.isFinite(amount) || (document.getElementById("adj-amount") || {}).value === "") {
+          toast("Enter an entity, type and amount"); return;
+        }
+        const nums = state.adjustments.map((a) => Number(String(a.id).replace(/\D/g, "")) || 0);
+        const next = Math.max(500, ...nums) + 1;
+        state.adjustments.unshift({
+          id: "ADJ-" + next, vatGroup: groupOf(entity) || state.groupId, entity, ref: "Manual", type,
+          amount, preparer: state.username + " (Accountant)", reviewer: "Promod",
+          status: "Pending Review", period: state.period
+        });
+        state.showAdjForm = false;
+        audit("Adjustment submitted", "ADJ-" + next + " " + type + " " + money(amount) + " · " + entity);
+        toast("Adjustment submitted for review");
+        render(); return;
+      }
+      if (act === "adjStatus") {
+        if (!can("approveAdjustment")) return;
+        const id = t.getAttribute("data-id"), status = t.getAttribute("data-status");
+        const row = state.adjustments.find((a) => a.id === id);
+        if (!row || row.status !== "Pending Review") return;
+        row.status = status;
+        audit("Adjustment " + status.toLowerCase(), id + " set to " + status);
+        toast(id + " " + status.toLowerCase());
+        render(); return;
+      }
+      if (act === "toggleBatch") {
+        const id = t.getAttribute("data-id");
+        state.expandedBatch = state.expandedBatch === id ? null : id;
+        render(); return;
+      }
+      if (act === "uploadBatch") {
+        if (state.uploading) return;
+        state.uploading = true;
+        state.batches = state.batches.map((b) => b.id === "B6" ? Object.assign({}, b, { status: "Processing", time: "just now" }) : b);
+        audit("Data intake", "Manual Excel/CSV upload started");
+        render();
+        setTimeout(() => {
+          state.batches = state.batches.map((b) => b.id === "B6" ? Object.assign({}, b, { status: "Completed", records: 318 }) : b);
+          state.uploading = false;
+          audit("Data intake", "Manual Excel/CSV batch completed — 318 records");
+          toast("Upload complete");
+          render();
+        }, 1400);
+        return;
+      }
+      if (act === "runValidation") {
+        const n = state.rules.filter((r) => r.active).length;
+        state.validationStatus = "running";
+        state.checkedCount = 0;
+        audit("Validation", "Rules engine started (" + n + " active rules)");
+        render();
+        for (let i = 0; i < n; i++) {
+          setTimeout(() => { state.checkedCount = i + 1; render(); }, (i + 1) * 450);
+        }
+        setTimeout(() => {
+          state.validationStatus = "complete";
+          audit("Validation", "Complete — Incorrect VAT, No VAT and Duplicate data flagged from Blue sample");
+          render();
+        }, n * 450 + 350);
+        return;
+      }
+      if (act === "signRecon") {
+        if (!can("signRecon")) return;
+        state.reconSigned[state.groupId] = true;
+        audit("Recon pack signed", VAT_GROUPS.find((g) => g.id === state.groupId).name);
+        toast("Reconciliation pack signed"); render(); return;
+      }
+      if (act === "signReturn") {
+        if (!can("signReturn") || sodBlock()) return;
+        const gid = state.groupId, step = SIGNOFF_STEPS[state.signoff[gid]];
+        state.signoffLog.push({ groupId: gid, role: step, user: state.username, ts: new Date().toISOString() });
+        state.signoff[gid] += 1;
+        audit("VAT return approved", step + " signed " + VAT_GROUPS.find((g) => g.id === gid).name);
+        if (state.signoff[gid] >= SIGNOFF_STEPS.length) toast("Return fully signed off");
+        render(); return;
+      }
+      if (act === "advanceRefund") {
+        if (!can("advanceRefund")) return;
+        const steps = ["Eligible", "Documented", "Approved", "Submitted", "Tracking"];
+        const i = steps.indexOf(state.refund.status);
+        if (i < steps.length - 1) state.refund.status = steps[i + 1];
+        audit("Refund status", "Moved to " + state.refund.status);
+        render(); return;
+      }
+      if (act === "reportItem") { state.reportItem = Number(t.getAttribute("data-id")); render(); return; }
+      if (act === "exportReport") {
+        const item = REPORT_ITEMS.find((i) => i.id === Number(state.reportItem));
+        toast("Export started — " + ((item && item.name) || "report"));
+        audit("Report export", (item && item.name) || "Report");
+        return;
+      }
+      if (act === "toggleRestrict") {
+        const user = t.getAttribute("data-user");
+        if (state.accessRules[user]) delete state.accessRules[user];
+        else state.accessRules[user] = ALL_ENTITIES.slice();
+        audit("Entity access", user + " restriction " + (state.accessRules[user] ? "on" : "off"));
+        render(); return;
+      }
+    });
+
+    document.getElementById("app").addEventListener("change", (e) => {
+      const t = e.target.closest("[data-act]");
+      if (!t) return;
+      const act = t.getAttribute("data-act");
+      if (act === "user") { state.username = t.value; syncEntityAfterUser(); audit("User switch", "Now acting as " + state.username + " (" + role() + ")"); render(); }
+      else if (act === "group") { state.groupId = t.value; syncEntityAfterUser(); render(); }
+      else if (act === "period") { state.period = t.value; render(); }
+      else if (act === "entity") { state.entity = t.value; render(); }
+      else if (act === "excStatus") {
+        if (!can("resolveException")) return;
+        const txn = state.txns.find((x) => x.id === t.getAttribute("data-id"));
+        if (!txn) return;
+        txn.exceptionStatus = t.value;
+        state.signoff[txn.vatGroup] = 0;
+        state.signoffLog = state.signoffLog.filter((s) => s.groupId !== txn.vatGroup);
+        audit("Exception outcome", txn.id + " set to " + t.value + " · " + impactText(txn));
+        toast("Working VAT recalculated"); render();
+      } else if (act === "auditBox") {
+        state.auditBox = t.value; render();
+      } else if (act === "changeRole") {
+        const user = t.getAttribute("data-user");
+        const u = state.users.find((x) => x.name === user);
+        if (u) u.role = t.value;
+        audit("Role change", user + " assigned " + t.value);
+        render();
+      } else if (act === "toggleEntity") {
+        const user = t.getAttribute("data-user"), ent = t.getAttribute("data-ent");
+        const list = state.accessRules[user] || [];
+        state.accessRules[user] = t.checked ? Array.from(new Set(list.concat(ent))) : list.filter((x) => x !== ent);
+        audit("Entity access", user + " " + (t.checked ? "granted" : "revoked") + " " + ent);
+        render();
+      }
+    });
+
+    audit("System", "Prototype loaded with Blue sample data (sheet 03/04/05).");
+    render();
+  </script>
+</body>
+</html>
