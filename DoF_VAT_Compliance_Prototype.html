@@ -26,7 +26,6 @@
     .nav button:hover { color: #fff; }
     .nav button.active { background: var(--navy-2); color: #fff; }
     .nav svg { flex-shrink: 0; }
-    .side-foot { padding: 14px 18px; font-size: 11px; color: #7C8AA3; border-top: 1px solid #1B3A66; }
     .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
     .topbar { min-height: 64px; background: #fff; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 24px; }
     .topbar h2 { margin: 0; font-size: 18px; color: var(--navy); }
@@ -444,7 +443,6 @@
             ${NAV.map((n) => `<button class="${state.screen === n.id ? "active" : ""}" data-act="goto" data-id="${n.id}">${Icon[n.icon] || ""} ${n.label}</button>`).join("")}
             ${showSettings ? `<button class="${state.screen === "settings" ? "active" : ""}" data-act="goto" data-id="settings">${Icon.gear} Settings</button>` : ""}
           </nav>
-          <div class="side-foot">Blue sample data · sheet 05 foot<br/>SoD: preparer cannot be final approver</div>
         </aside>
         <div class="main">
           <div class="topbar">
