@@ -163,12 +163,11 @@
     const SIGNOFF_STEPS = ["Accountant", "VAT Reviewer", "Finance Controller", "DoF Tax Team"];
     const PERIODS = ["Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026"];
     const VAT_GROUPS = [
-      { id: "g1", name: "VAT Group 1", entities: ["Entity A", "Entity B"], note: "Built in full — drives all three exception scenarios." },
-      { id: "g2", name: "VAT Group 2", entities: ["Entity C"], note: "Three clean lines. Net refund — refund tracking screen." },
-      { id: "g3", name: "VAT Group 3", entities: [], note: "Summary line only, no transaction detail." }
+      { id: "g1", name: "VAT Group 1", entities: ["Entity A"], note: "Vishal — Incorrect VAT and No VAT exception scenarios." },
+      { id: "g2", name: "VAT Group 2", entities: ["Entity B"], note: "Balit — duplicate input VAT and entity-level refund." },
+      { id: "g3", name: "VAT Group 3", entities: ["Entity C"], note: "Rakesh — three clean lines. Net refund — refund tracking screen." }
     ];
     const ALL_ENTITIES = ["Entity A", "Entity B", "Entity C"];
-    const GROUP3 = { output: 320000, input: 210000, net: 110000 };
     const seedUsers = [
       { name: "Vishal", role: "Accountant" },
       { name: "Balit", role: "Accountant" },
@@ -188,15 +187,14 @@
       { id: "AR-A-001", vatGroup: "g1", entity: "Entity A", type: "AR", description: "Service revenue", netAmount: 2000000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 100000, recommendedVat: 100000, exceptionType: null, exceptionStatus: null, explanation: "2,000,000 × 5% = 100,000. Posted correctly at source, so GL and working agree." },
       { id: "AR-A-005", vatGroup: "g1", entity: "Entity A", type: "AR", description: "Consultancy fee (sale to customer)", netAmount: 200000, vatCode: "Exempt (incorrect)", appliedRate: 0.05, sourceVat: 0, recommendedVat: 10000, exceptionType: "Incorrect VAT", exceptionStatus: "accepted", explanation: "Source posted this as Exempt, so the GL carries NIL output VAT. Recommendation: change Exempt to SR 5% (10,000)." },
       { id: "AR-A-003", vatGroup: "g1", entity: "Entity A", type: "AR", description: "Facility fees", netAmount: 300000, vatCode: "No VAT code on extract", appliedRate: 0, sourceVat: 0, recommendedVat: 15000, exceptionType: "No VAT", exceptionStatus: "rejected", explanation: "Platform recommends SR 5% (15,000). Supply confirmed out of scope if rejected — ERP treatment stands." },
-      { id: "AR-B-001", vatGroup: "g1", entity: "Entity B", type: "AR", description: "Service revenue", netAmount: 1200000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 60000, recommendedVat: 60000, exceptionType: null, exceptionStatus: null, explanation: "1,200,000 × 5% = 60,000. Entity B's only output VAT row." },
+      { id: "AR-B-001", vatGroup: "g2", entity: "Entity B", type: "AR", description: "Service revenue", netAmount: 1200000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 60000, recommendedVat: 60000, exceptionType: null, exceptionStatus: null, explanation: "1,200,000 × 5% = 60,000. Entity B's only output VAT row." },
       { id: "AP-A-101", vatGroup: "g1", entity: "Entity A", type: "AP", description: "Operating supplies", netAmount: 800000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 40000, recommendedVat: 40000, exceptionType: null, exceptionStatus: null, explanation: "800,000 × 5% = 40,000. Entity A's only input VAT row." },
-      { id: "AP-B-101", vatGroup: "g1", entity: "Entity B", type: "AP", description: "Capital purchase", netAmount: 2000000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 100000, recommendedVat: 100000, exceptionType: null, exceptionStatus: null, explanation: "2,000,000 × 5% = 100,000." },
-      { id: "AP-B-103", vatGroup: "g1", entity: "Entity B", type: "AP", description: "Maintenance — DUPLICATE record", netAmount: 400000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 20000, recommendedVat: 0, exceptionType: "Duplicate data", exceptionStatus: "emergency_adjust", explanation: "400,000 × 5% = 20,000 sits in the source/GL. Remove in the VAT platform only so filing is not delayed." },
-      { id: "AR-C-001", vatGroup: "g2", entity: "Entity C", type: "AR", description: "Service revenue", netAmount: 800000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 40000, recommendedVat: 40000, exceptionType: null, exceptionStatus: null, explanation: "Clean. 800,000 × 5% = 40,000." },
-      { id: "AR-C-002", vatGroup: "g2", entity: "Entity C", type: "AR", description: "Export of services", netAmount: 200000, vatCode: "ZR 0%", appliedRate: 0, sourceVat: 0, recommendedVat: 0, exceptionType: null, exceptionStatus: null, explanation: "Zero-rated, so nil output VAT." },
-      { id: "AP-C-101", vatGroup: "g2", entity: "Entity C", type: "AP", description: "Capital purchase", netAmount: 1200000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 60000, recommendedVat: 60000, exceptionType: null, exceptionStatus: null, explanation: "Clean. 1,200,000 × 5% = 60,000. Capital spend drives the refund." }
+      { id: "AP-B-101", vatGroup: "g2", entity: "Entity B", type: "AP", description: "Capital purchase", netAmount: 2000000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 100000, recommendedVat: 100000, exceptionType: null, exceptionStatus: null, explanation: "2,000,000 × 5% = 100,000." },
+      { id: "AP-B-103", vatGroup: "g2", entity: "Entity B", type: "AP", description: "Maintenance — DUPLICATE record", netAmount: 400000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 20000, recommendedVat: 0, exceptionType: "Duplicate data", exceptionStatus: "emergency_adjust", explanation: "400,000 × 5% = 20,000 sits in the source/GL. Remove in the VAT platform only so filing is not delayed." },
+      { id: "AR-C-001", vatGroup: "g3", entity: "Entity C", type: "AR", description: "Service revenue", netAmount: 800000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 40000, recommendedVat: 40000, exceptionType: null, exceptionStatus: null, explanation: "Clean. 800,000 × 5% = 40,000." },
+      { id: "AR-C-002", vatGroup: "g3", entity: "Entity C", type: "AR", description: "Export of services", netAmount: 200000, vatCode: "ZR 0%", appliedRate: 0, sourceVat: 0, recommendedVat: 0, exceptionType: null, exceptionStatus: null, explanation: "Zero-rated, so nil output VAT." },
+      { id: "AP-C-101", vatGroup: "g3", entity: "Entity C", type: "AP", description: "Capital purchase", netAmount: 1200000, vatCode: "SR 5%", appliedRate: 0.05, sourceVat: 60000, recommendedVat: 60000, exceptionType: null, exceptionStatus: null, explanation: "Clean. 1,200,000 × 5% = 60,000. Capital spend drives the refund." }
     ];
-    const EXPECTED = { g1: { output: 170000, input: 140000, net: 30000 }, g2: { output: 40000, input: 60000, net: -20000 }, g3: GROUP3 };
     const NAV = [
       { id: "dashboard", label: "Dashboard", icon: "home" },
       { id: "dataintake", label: "Data Intake", icon: "upload" },
@@ -242,15 +240,17 @@
       { id: "B1", source: "Oracle Fusion — General Ledger", records: 12480, status: "Completed", time: "06:02" },
       { id: "B2", source: "Oracle Fusion — Payables (AP)", records: 8320, status: "Completed", time: "06:04" },
       { id: "B3", source: "Oracle Fusion — Receivables (AR)", records: 9110, status: "Completed", time: "06:05" },
+      { id: "B4", source: "Procurement Portal (Satellite)", records: 2210, status: "Completed", time: "06:11" },
+      { id: "B5", source: "Legacy AR System (Satellite)", records: 640, status: "Processing", time: "06:14" },
       { id: "B6", source: "Manual Excel/CSV Upload", records: 0, status: "Awaiting Upload", time: "—" }
     ];
     const ADJ_TYPES = ["Partial Exemption", "Prior-Period Correction", "Industry-Specific", "Other"];
     const seedAdjustments = [
       { id: "ADJ-501", vatGroup: "g1", entity: "Entity A", ref: "AR-A-005", type: "Rate Reclassification", amount: 10000, preparer: "Vishal (Accountant)", reviewer: "Promod", status: "Pending Review", period: "Q2 2026" },
-      { id: "ADJ-502", vatGroup: "g1", entity: "Entity B", ref: "AP-B-103", type: "Duplicate Reversal", amount: -20000, preparer: "Balit (Accountant)", reviewer: "Promod", status: "Pending Review", period: "Q2 2026" },
+      { id: "ADJ-502", vatGroup: "g2", entity: "Entity B", ref: "AP-B-103", type: "Duplicate Reversal", amount: -20000, preparer: "Balit (Accountant)", reviewer: "Promod", status: "Pending Review", period: "Q2 2026" },
       { id: "ADJ-503", vatGroup: "g1", entity: "Entity A", ref: "Manual", type: "Partial Exemption", amount: 2500, preparer: "Vishal (Accountant)", reviewer: "Promod", status: "Approved", period: "Q2 2026" },
-      { id: "ADJ-504", vatGroup: "g2", entity: "Entity C", ref: "Manual", type: "Prior-Period Correction", amount: 4300, preparer: "Rakesh (Accountant)", reviewer: "Promod", status: "Approved", period: "Q2 2026" },
-      { id: "ADJ-505", vatGroup: "g1", entity: "Entity B", ref: "Manual", type: "Rate Reclassification", amount: 2215, preparer: "Balit (Accountant)", reviewer: "Promod", status: "Approved", period: "Q1 2026" }
+      { id: "ADJ-504", vatGroup: "g3", entity: "Entity C", ref: "Manual", type: "Prior-Period Correction", amount: 4300, preparer: "Rakesh (Accountant)", reviewer: "Promod", status: "Approved", period: "Q2 2026" },
+      { id: "ADJ-505", vatGroup: "g2", entity: "Entity B", ref: "Manual", type: "Rate Reclassification", amount: 2215, preparer: "Balit (Accountant)", reviewer: "Promod", status: "Approved", period: "Q1 2026" }
     ];
     const seedRules = [
       { id: "R1", name: "Rate Mismatch Detection", trigger: "Tax code / rate combination inconsistent with vendor profile", active: true },
@@ -276,7 +276,7 @@
       signoff: { g1: 0, g2: 0, g3: 0 },
       signoffLog: [],
       reconSigned: { g1: false, g2: false, g3: false },
-      refund: { status: "Eligible", note: "Group 2 net refund of 20,000 from capital purchase AP-C-101." },
+      refund: { status: "Eligible", note: "Group 3 net refund of 20,000 from capital purchase AP-C-101." },
       reportItem: 1,
       auditBox: "Box 9",
       audit: [],
@@ -394,7 +394,6 @@
     }
 
     function groupTotals(id) {
-      if (id === "g3") return Object.assign({ glOut: GROUP3.output, glIn: GROUP3.input }, GROUP3);
       return totals(state.txns, id);
     }
 
@@ -421,11 +420,12 @@
             const info = roleInfo(u.role);
             const restricted = state.accessRules[u.name];
             const acc = getAccessibleEntities(u.name);
+            const groups = Array.from(new Set(acc.map((e) => (VAT_GROUPS.find((g) => g.entities.includes(e)) || {}).name).filter(Boolean)));
             return `<button class="user-card" data-act="login" data-user="${u.name}">
               <div class="ico">${u.role === "Administrator" ? Icon.gear : u.role === "Finance Controller" ? Icon.shield : u.role === "DoF Tax Team" ? Icon.check : u.role === "VAT Reviewer" ? Icon.search : Icon.user}</div>
               <div><strong>${u.name}</strong> <span class="badge b-ok">${u.role}</span></div>
               <p class="hint">${info.blurb}</p>
-              <div class="hint" style="margin-top:8px">${restricted ? "Access: " + acc.join(", ") : "Access: all " + ALL_ENTITIES.length + " legal entities"}</div>
+              <div class="hint" style="margin-top:8px">${restricted ? "Access: " + acc.join(", ") + (groups.length ? " · " + groups.join(", ") : "") : "Access: all " + ALL_ENTITIES.length + " legal entities"}</div>
             </button>`;
           }).join("")}
         </div>
@@ -488,7 +488,7 @@
       if (id === "B3") return vis(state.txns.filter((t) => t.type === "AR"));
       if (id === "B6") {
         const b = state.batches.find((x) => x.id === "B6");
-        return (b && b.status === "Completed") ? vis(state.txns.filter((t) => t.vatGroup === "g2")) : [];
+        return (b && b.status === "Completed") ? vis(state.txns.filter((t) => t.vatGroup === "g3")) : [];
       }
       return [];
     }
@@ -548,7 +548,7 @@
             <div class="grid g3" style="margin-bottom:16px">
               <div class="card kpi"><div class="lbl">Records ingested</div><div class="val">${fmt(totalRecords)}</div><div class="sub">Across all source systems</div></div>
               <div class="card kpi"><div class="lbl">Active validation rules</div><div class="val">${activeRules.length}</div><div class="sub">R1 Incorrect VAT · R2 No VAT · R3 Duplicate</div></div>
-              <div class="card kpi"><div class="lbl">Entities in scope</div><div class="val">${ALL_ENTITIES.length}</div><div class="sub">VAT Groups 1–2 transactional · Group 3 summary</div></div>
+              <div class="card kpi"><div class="lbl">Entities in scope</div><div class="val">${ALL_ENTITIES.length}</div><div class="sub">VAT Groups 1–3 transactional · one entity each</div></div>
             </div>
             ${state.validationStatus === "idle" ? `<button class="btn btn-navy" data-act="runValidation">${Icon.check} Run validation</button>` : `
               <div style="margin-bottom:8px">${activeRules.map((r, i) => {
@@ -591,7 +591,6 @@
         <div class="hint" style="margin-top:6px">Input</div>
         <div class="bar"><i class="teal" style="width:${(t.input / max) * 100}%"></i></div>
       </article>`;
-      const a = totals(state.txns, "g1", "Entity A"), b = totals(state.txns, "g1", "Entity B");
       return `${paramBar()}
         <div class="card" style="background:#F0F4F8;margin-bottom:14px">
           <div class="card-b" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
@@ -600,15 +599,15 @@
           </div>
         </div>
         <div class="grid g4" style="margin-bottom:14px">
-          <div class="card kpi"><div class="lbl">Group 1 net</div><div class="val" style="color:var(--maroon)">${money(g1.net)}</div><div class="sub">PAYABLE · Entity A ${fmt(Math.abs(a.net))} pay / Entity B ${fmt(Math.abs(b.net))} refund</div></div>
-          <div class="card kpi"><div class="lbl">Group 2 net</div><div class="val" style="color:var(--ok)">${money(Math.abs(g2.net))}</div><div class="sub">REFUND · capital spend AP-C-101</div></div>
+          <div class="card kpi"><div class="lbl">Group 1 net</div><div class="val" style="color:var(--maroon)">${money(g1.net)}</div><div class="sub">PAYABLE · Entity A</div></div>
+          <div class="card kpi"><div class="lbl">Group 2 net</div><div class="val" style="color:var(--ok)">${money(Math.abs(g2.net))}</div><div class="sub">REFUND · Entity B duplicate reversed</div></div>
           <div class="card kpi"><div class="lbl">Open exceptions (accessible)</div><div class="val">${openExc}</div><div class="sub">Incorrect VAT · No VAT · Duplicate data</div></div>
           <div class="card kpi"><div class="lbl">Sign-off stage (${VAT_GROUPS.find((g)=>g.id===state.groupId).name})</div><div class="val">${state.signoff[state.groupId]}/${SIGNOFF_STEPS.length}</div><div class="sub">${state.signoff[state.groupId] >= 4 ? "Submitted" : "Awaiting " + SIGNOFF_STEPS[state.signoff[state.groupId]]}</div></div>
         </div>
         <div class="grid g3">
-          ${card("g1", g1, "Entity B is a refund sitting inside a group payable.")}
-          ${card("g2", g2, "Three clean lines. Demonstrates multi-group refund.")}
-          ${card("g3", g3, "Summary only — no transaction drill-down.")}
+          ${card("g1", g1, "Entity A only — Incorrect VAT and No VAT exceptions.")}
+          ${card("g2", g2, "Entity B refund after duplicate input VAT is removed.")}
+          ${card("g3", g3, "Entity C clean lines. Capital spend drives the refund.")}
         </div>`;
     }
 
@@ -617,7 +616,7 @@
       const selected = Number(state.reportItem) || 1;
       const item = REPORT_ITEMS.find((i) => i.id === selected) || REPORT_ITEMS[0];
       const openExcAll = state.txns.filter((t) => t.exceptionType && acc.includes(t.entity));
-      const g2 = groupTotals("g2");
+      const g3ref = groupTotals("g3");
       const amt = (n) => n < 0 ? "(" + fmt(Math.abs(n)) + ")" : fmt(n);
       const riskColor = (v) => v >= 4 ? "#8C3B3B" : v === 3 ? "#C9A227" : "#0E7C7B";
       const opsStatus = (e) => {
@@ -655,7 +654,7 @@
         </tbody></table>
         <p class="hint" style="margin-top:12px">Accepted Incorrect VAT and Emergency Adjust create explained GL differences until source is corrected.</p>`;
       } else if (selected === 4) {
-        const entity = state.groupId === "g3" ? "" : state.entity;
+        const entity = state.entity;
         const t = entity ? totals(state.txns, state.groupId, entity) : groupTotals(state.groupId);
         const boxRows = boxes(state.groupId, entity);
         body = `<table><thead><tr><th>Box</th><th>Label</th><th class="num">Amount (AED)</th></tr></thead><tbody>
@@ -681,7 +680,7 @@
           ${rows.map((x) => `<tr><td><strong>${x.id}</strong></td><td>${x.entity}</td><td>${x.exceptionType}</td><td>${statusBadge(EXC_SEV[x.exceptionType] || "Low")}</td><td class="num">${EXC_AGE[x.id] || 1}</td></tr>`).join("")}
         </tbody></table>` : `<div class="empty">No outstanding exceptions.</div>`;
       } else if (selected === 8) {
-        const boxOpts = boxes(state.groupId, state.groupId === "g3" ? "" : state.entity);
+        const boxOpts = boxes(state.groupId, state.entity);
         const lines = boxLines(state.auditBox);
         body = `<select data-act="auditBox" style="margin-bottom:12px;padding:8px;border:1px solid var(--line);border-radius:8px">
           ${boxOpts.map((b) => `<option value="${b.box}" ${b.box === state.auditBox ? "selected" : ""}>${b.box} — ${b.label}</option>`).join("")}
@@ -692,7 +691,7 @@
       } else if (selected === 9) {
         const show = acc.includes("Entity C");
         body = show ? `<table><thead><tr><th>ID</th><th>Entity</th><th class="num">Amount (AED)</th><th>Stage</th><th class="num">Days</th></tr></thead><tbody>
-          <tr><td><strong>RF-201</strong></td><td>Entity C</td><td class="num">${fmt(Math.abs(g2.net))}</td><td>${statusBadge(state.refund.status)}</td><td class="num">9</td></tr>
+          <tr><td><strong>RF-201</strong></td><td>Entity C</td><td class="num">${fmt(Math.abs(g3ref.net))}</td><td>${statusBadge(state.refund.status)}</td><td class="num">9</td></tr>
         </tbody></table>` : `<div class="empty">No refund claims in your accessible entities.</div>`;
       } else if (selected === 10) {
         body = `<table><thead><tr><th>Entity</th><th class="num">Output tax</th><th class="num">Input tax</th><th class="num">Net position</th></tr></thead><tbody>
@@ -752,7 +751,7 @@
                   <td><strong>${t.id}</strong></td><td>${t.entity}</td><td>${t.exceptionType}</td>
                   <td class="num">${fmt(Math.abs(workingVat(t) - (Number(t.sourceVat) || 0)) || t.recommendedVat)}</td>
                   <td>${statusBadge(t.exceptionStatus)}</td>
-                </tr>`).join("") : `<tr><td colspan="5" class="empty">No exceptions for this Period / VAT Group / access combination. Group 2 is clean by design. Group 3 has no transactions.</td></tr>`}
+                </tr>`).join("") : `<tr><td colspan="5" class="empty">No exceptions for this Period / VAT Group / access combination.</td></tr>`}
               </tbody>
             </table>
           </div>
@@ -844,7 +843,6 @@
       return `${paramBar()}
         <div class="card">
           <div class="card-h"><h3>VAT working lines</h3><span class="badge b-info">${state.entity || VAT_GROUPS.find((g)=>g.id===state.groupId).name}</span></div>
-          ${state.groupId === "g3" ? `<div class="card-b"><div class="callout">VAT Group 3 is summary-only. Output 320,000 / Input 210,000 / Net payable 110,000.</div></div>` : ""}
           <div style="overflow:auto">
             <table>
               <thead><tr><th>ID</th><th>Entity</th><th>Type</th><th>Description</th><th class="num">Net</th><th>Code</th><th class="num">Rate</th><th class="num">Working VAT</th><th>Exception</th></tr></thead>
@@ -854,13 +852,13 @@
                   return `<tr class="${trow.exceptionType ? (trow.exceptionType === "Duplicate data" ? "exc-dup" : "exc") : ""}">
                     <td><strong>${trow.id}</strong></td><td>${trow.entity}</td><td>${trow.type === "AR" ? "AR — Output" : "AP — Input"}</td>
                     <td>${trow.description}<div class="hint">${trow.explanation}</div></td>
-                    <td class="num">${fmt(trow.netAmount)}</td><td>${trow.vatCode}</td><td class="num">${(trow.appliedRate * 100).toFixed(0)}%</td>
+                    <td class="num">${fmt(trow.netAmount)}</td><td>${intakeVatCode(trow.vatCode)}</td><td class="num">${(trow.appliedRate * 100).toFixed(0)}%</td>
                     <td class="num">${fmt(w)}${w !== s ? `<div class="hint">GL / extract: ${fmt(s)}</div>` : ""}</td>
                     <td>${trow.exceptionType ? `<span class="badge b-warn">${trow.exceptionType}</span><div>${statusBadge(trow.exceptionStatus)}</div>` : `<span class="badge b-ok">Clean</span>`}</td>
                   </tr>`;
                 }).join("") : `<tr><td colspan="9" class="empty">No transactions in this filter.</td></tr>`}
               </tbody>
-              ${rows.length && state.groupId !== "g3" ? `<tfoot>
+              ${rows.length ? `<tfoot>
                 <tr>
                   <td colspan="7"><strong>Working VAT total</strong><div class="hint">Matches VAT Return Box 9 / 10 / 12 for this group and entity.</div></td>
                   <td class="num">
@@ -883,7 +881,6 @@
         <div class="callout" style="margin-bottom:12px">GL balance is the BEFORE picture (source posted). VAT working is the AFTER picture (accepted corrections and emergency adjustments). Reconciliation is at control-account total level.</div>
         <div class="card">
           <div class="card-h"><h3>GL to VAT working</h3>${signed ? `<span class="badge b-ok">Pack signed by Finance Controller</span>` : `<span class="badge b-warn">Unsigned</span>`}</div>
-          ${state.groupId === "g3" ? `<div class="card-b"><div class="callout">VAT Group 3 has no GL rows.</div></div>` : ""}
           <table>
             <thead><tr><th>Entity</th><th>Control account</th><th class="num">GL</th><th class="num">VAT working</th><th class="num">Difference</th><th>Classification</th><th>Route</th></tr></thead>
             <tbody>
@@ -905,11 +902,11 @@
 
     function returnView() {
       const gid = state.groupId;
-      if (!state.entity && gid !== "g3") {
+      if (!state.entity) {
         return `${paramBar()}
           <div class="card"><div class="empty">No legal entity is selected in this VAT Group, so the return is not shown. Switch to a group that contains an entity you can access.</div></div>`;
       }
-      const entity = gid === "g3" ? "" : state.entity;
+      const entity = state.entity;
       const t = entity ? totals(state.txns, gid, entity) : groupTotals(gid);
       const boxRows = boxes(gid, entity);
       const stage = state.signoff[gid] || 0;
@@ -952,14 +949,14 @@
     }
 
     function refundsView() {
-      const g2 = groupTotals("g2");
+      const g3 = groupTotals("g3");
       const steps = ["Eligible", "Documented", "Approved", "Submitted", "Tracking"];
       const idx = steps.indexOf(state.refund.status);
       return `${paramBar()}
         <div class="card">
-          <div class="card-h"><h3>Refund claim — VAT Group 2 (Entity C)</h3>${statusBadge(state.refund.status)}</div>
+          <div class="card-h"><h3>Refund claim — VAT Group 3 (Entity C)</h3>${statusBadge(state.refund.status)}</div>
           <div class="card-b">
-            <p>Net position ${money(g2.net)} ${posBadge(g2.net)}. Driven by AP-C-101 capital purchase (input 60,000) against output 40,000.</p>
+            <p>Net position ${money(g3.net)} ${posBadge(g3.net)}. Driven by AP-C-101 capital purchase (input 60,000) against output 40,000.</p>
             <p class="hint">${state.refund.note}</p>
             <div style="margin:16px 0">${steps.map((s, i) => `<span class="badge ${i <= idx ? "b-ok" : "b-muted"}" style="margin-right:6px">${i + 1}. ${s}</span>`).join("")}</div>
             <button class="btn btn-teal" data-act="advanceRefund" ${can("advanceRefund") && idx < steps.length - 1 ? "" : "disabled"}>${idx < steps.length - 1 ? "Advance to " + steps[idx + 1] : "At tracking"}</button>
