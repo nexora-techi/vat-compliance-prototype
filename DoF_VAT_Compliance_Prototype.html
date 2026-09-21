@@ -172,14 +172,16 @@
     const seedUsers = [
       { name: "Vishal", role: "Accountant" },
       { name: "Balit", role: "Accountant" },
+      { name: "Rakesh", role: "Accountant" },
       { name: "Promod", role: "VAT Reviewer" },
       { name: "R. Verma", role: "Finance Controller" },
       { name: "K. Menon", role: "DoF Tax Team" },
       { name: "Sanjay", role: "Administrator" }
     ];
     const seedEntityAccessRulesDefault = {
+      Vishal: ["Entity A"],
       Balit: ["Entity B"],
-      Vishal: ["Entity A", "Entity C"]
+      Rakesh: ["Entity C"]
     };
 
     const SAMPLE_TXNS = [
@@ -240,8 +242,6 @@
       { id: "B1", source: "Oracle Fusion — General Ledger", records: 12480, status: "Completed", time: "06:02" },
       { id: "B2", source: "Oracle Fusion — Payables (AP)", records: 8320, status: "Completed", time: "06:04" },
       { id: "B3", source: "Oracle Fusion — Receivables (AR)", records: 9110, status: "Completed", time: "06:05" },
-      { id: "B4", source: "Procurement Portal (Satellite)", records: 2210, status: "Completed", time: "06:11" },
-      { id: "B5", source: "Legacy AR System (Satellite)", records: 640, status: "Processing", time: "06:14" },
       { id: "B6", source: "Manual Excel/CSV Upload", records: 0, status: "Awaiting Upload", time: "—" }
     ];
     const ADJ_TYPES = ["Partial Exemption", "Prior-Period Correction", "Industry-Specific", "Other"];
@@ -249,7 +249,7 @@
       { id: "ADJ-501", vatGroup: "g1", entity: "Entity A", ref: "AR-A-005", type: "Rate Reclassification", amount: 10000, preparer: "Vishal (Accountant)", reviewer: "Promod", status: "Pending Review", period: "Q2 2026" },
       { id: "ADJ-502", vatGroup: "g1", entity: "Entity B", ref: "AP-B-103", type: "Duplicate Reversal", amount: -20000, preparer: "Balit (Accountant)", reviewer: "Promod", status: "Pending Review", period: "Q2 2026" },
       { id: "ADJ-503", vatGroup: "g1", entity: "Entity A", ref: "Manual", type: "Partial Exemption", amount: 2500, preparer: "Vishal (Accountant)", reviewer: "Promod", status: "Approved", period: "Q2 2026" },
-      { id: "ADJ-504", vatGroup: "g2", entity: "Entity C", ref: "Manual", type: "Prior-Period Correction", amount: 4300, preparer: "Vishal (Accountant)", reviewer: "Promod", status: "Approved", period: "Q2 2026" },
+      { id: "ADJ-504", vatGroup: "g2", entity: "Entity C", ref: "Manual", type: "Prior-Period Correction", amount: 4300, preparer: "Rakesh (Accountant)", reviewer: "Promod", status: "Approved", period: "Q2 2026" },
       { id: "ADJ-505", vatGroup: "g1", entity: "Entity B", ref: "Manual", type: "Rate Reclassification", amount: 2215, preparer: "Balit (Accountant)", reviewer: "Promod", status: "Approved", period: "Q1 2026" }
     ];
     const seedRules = [
@@ -486,13 +486,20 @@
       const vis = (rows) => rows.filter((t) => acc.includes(t.entity));
       if (id === "B2") return vis(state.txns.filter((t) => t.type === "AP"));
       if (id === "B3") return vis(state.txns.filter((t) => t.type === "AR"));
-      if (id === "B4") return vis(state.txns.filter((t) => t.id === "AP-B-101" || t.id === "AP-C-101"));
-      if (id === "B5") return vis(state.txns.filter((t) => t.id === "AR-C-002"));
       if (id === "B6") {
         const b = state.batches.find((x) => x.id === "B6");
         return (b && b.status === "Completed") ? vis(state.txns.filter((t) => t.vatGroup === "g2")) : [];
       }
       return [];
+    }
+    function intakeTypeLabel(type) {
+      if (type === "AP") return "AP Invoice";
+      if (type === "AR") return "AR Invoice";
+      return type;
+    }
+    function intakeVatCode(code) {
+      if (code === "Exempt (incorrect)" || code === "No VAT code on extract") return "—";
+      return code;
     }
 
     function intakeView() {
@@ -517,7 +524,7 @@
                   </tr>
                   ${open ? `<tr><td colspan="4" style="background:#FAFBFC">
                     ${lines.length ? `<table><thead><tr><th>Transaction</th><th>Entity</th><th>VAT code</th><th class="num">Amount</th><th>Type</th></tr></thead>
-                    <tbody>${lines.map((t) => `<tr class="${t.exceptionType ? "exc" : ""}"><td>${t.id}</td><td>${t.entity}</td><td>${t.vatCode}</td><td class="num">${fmt(t.netAmount)}</td><td>${t.type}${t.exceptionType ? " · " + t.exceptionType : ""}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No sample transaction lines for this batch${b.id === "B1" ? " — GL extract is control-account totals only." : "."}</div>`}
+                    <tbody>${lines.map((t) => `<tr><td>${t.id}</td><td>${t.entity}</td><td>${intakeVatCode(t.vatCode)}</td><td class="num">${fmt(t.netAmount)}</td><td>${intakeTypeLabel(t.type)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No sample transaction lines for this batch${b.id === "B1" ? " — GL extract is control-account totals only." : "."}</div>`}
                   </td></tr>` : ""}`;
               }).join("")}
             </tbody>
@@ -571,7 +578,7 @@
         "VAT Reviewer": { text: pendingAdj + " adjustment(s) awaiting your review", id: "adjustments" },
         "Finance Controller": { text: "Reconciliation pack and entity VAT return await sign-off", id: "recon" },
         "DoF Tax Team": { text: "VAT Group return awaiting final sign-off", id: "return" },
-        Administrator: { text: "6 users · entity access rules in Settings", id: "settings" }
+        Administrator: { text: "7 users · entity access rules in Settings", id: "settings" }
       }[r];
       const max = Math.max(g1.output, g1.input, g2.output, g2.input, g3.output, g3.input, 1);
       const card = (id, t, note) => `<article class="card kpi">
@@ -994,7 +1001,7 @@
           </table>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Legal entity access</h3><p class="hint">Keyed by username, not role — two Accountants can see different entities. Unlisted users are unrestricted (fail-open). Changes take effect immediately; switch user top-right to verify.</p></div></div>
+          <div class="card-h"><div><h3>Legal entity access</h3><p class="hint">Keyed by username, not role — three Accountants each have one legal entity. Unlisted users are unrestricted (fail-open). Changes take effect immediately; switch user top-right to verify.</p></div></div>
           ${state.users.map((u) => {
             const restricted = !!state.accessRules[u.name];
             const ents = getAccessibleEntities(u.name);
@@ -1023,8 +1030,14 @@
       document.getElementById("app").innerHTML = html;
     }
 
-    function syncEntityAfterUser() {
-      const acc = accessibleNow();
+    function syncEntityAfterUser(opts) {
+      let acc = accessibleNow();
+      if (!acc.length && opts && opts.alignGroup) {
+        const ents = getAccessibleEntities(state.username);
+        const gid = ents.length ? groupOf(ents[0]) : null;
+        if (gid) state.groupId = gid;
+        acc = accessibleNow();
+      }
       state.entity = acc[0] || "";
     }
 
@@ -1034,7 +1047,7 @@
       const act = t.getAttribute("data-act");
       if (act === "login") {
         state.username = t.getAttribute("data-user"); state.loggedIn = true; state.screen = "dashboard";
-        syncEntityAfterUser(); audit("Login", "Session started as " + state.username + " (" + role() + ")"); render(); return;
+        syncEntityAfterUser({ alignGroup: true }); audit("Login", "Session started as " + state.username + " (" + role() + ")"); render(); return;
       }
       if (act === "logout") { audit("Logout", "Session ended"); state.loggedIn = false; render(); return; }
       if (act === "goto") {
@@ -1160,7 +1173,7 @@
       const t = e.target.closest("[data-act]");
       if (!t) return;
       const act = t.getAttribute("data-act");
-      if (act === "user") { state.username = t.value; syncEntityAfterUser(); audit("User switch", "Now acting as " + state.username + " (" + role() + ")"); render(); }
+      if (act === "user") { state.username = t.value; syncEntityAfterUser({ alignGroup: true }); audit("User switch", "Now acting as " + state.username + " (" + role() + ")"); render(); }
       else if (act === "group") { state.groupId = t.value; syncEntityAfterUser(); render(); }
       else if (act === "period") { state.period = t.value; render(); }
       else if (act === "entity") { state.entity = t.value; render(); }
