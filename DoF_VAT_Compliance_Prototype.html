@@ -501,6 +501,10 @@
       if (code === "Exempt (incorrect)" || code === "No VAT code on extract") return "—";
       return code;
     }
+    function displayRate(t) {
+      if (t.id === "AR-A-003") return "Nil";
+      return (t.appliedRate * 100).toFixed(0) + "%";
+    }
 
     function intakeView() {
       return `${paramBar()}
@@ -852,7 +856,7 @@
                   return `<tr class="${trow.exceptionType ? (trow.exceptionType === "Duplicate data" ? "exc-dup" : "exc") : ""}">
                     <td><strong>${trow.id}</strong></td><td>${trow.entity}</td><td>${trow.type === "AR" ? "AR — Output" : "AP — Input"}</td>
                     <td>${trow.description}<div class="hint">${trow.explanation}</div></td>
-                    <td class="num">${fmt(trow.netAmount)}</td><td>${intakeVatCode(trow.vatCode)}</td><td class="num">${(trow.appliedRate * 100).toFixed(0)}%</td>
+                    <td class="num">${fmt(trow.netAmount)}</td><td>${intakeVatCode(trow.vatCode)}</td><td class="num">${displayRate(trow)}</td>
                     <td class="num">${fmt(w)}${w !== s ? `<div class="hint">GL / extract: ${fmt(s)}</div>` : ""}</td>
                     <td>${trow.exceptionType ? `<span class="badge b-warn">${trow.exceptionType}</span><div>${statusBadge(trow.exceptionStatus)}</div>` : `<span class="badge b-ok">Clean</span>`}</td>
                   </tr>`;
